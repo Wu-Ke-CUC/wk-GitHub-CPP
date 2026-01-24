@@ -1331,6 +1331,53 @@ class Solution
 		#pragma endregion
 		#pragma region 44.题目同10
 		#pragma endregion
+		#pragma region 45.跳跃游戏2
+		int jump(vector<int>& nums) {
+			int len = nums.size();
+			if (len == 1)return 0;
+			int index = 0;
+			int ret = 0;
+			while (index < len)
+			{
+				if (index + nums[index] >= len - 1)return ret + 1;
+				int maxIndex = 0;
+				int preIndex = 0;
+				int tempIndex = index;
+				for (int i = 1; i <= nums[tempIndex]; i++)
+				{
+					maxIndex = max(maxIndex, tempIndex + i + nums[tempIndex + i]);
+					if (maxIndex != preIndex)
+					{
+						preIndex = maxIndex;
+						index = tempIndex + i;
+					}
+				}
+				ret++;
+			}
+			return ret;
+		}
+		#pragma endregion
+		#pragma region 46.全排列
+		void dfs3(vector<vector<int>>& ret, vector<int>& output, int start, int end)
+		{
+			if (start == end)
+			{
+				ret.emplace_back(output);
+				return;
+			}
+			for (int i = start; i < end; i++)
+			{
+				swap(output[i], output[start]);
+				dfs3(ret, output, start + 1, end);
+				swap(output[i], output[start]);
+			}
+		}
+		vector<vector<int>> permute(vector<int>& nums) {
+			vector<vector<int>> ret;
+			dfs3(ret, nums, 0, nums.size());
+			return ret;
+		}
+		#pragma endregion
 
 };
 int main()
@@ -1643,6 +1690,27 @@ int main()
 		string num2 = "22";
 		string ret = solution.multiply(num1, num2);
 		cout << ret << endl;
+	}
+#pragma endregion
+#pragma region 45.跳跃游戏2
+	{
+		vector<int> nums = { 2,0,3,1,4,1,1 };
+		int ret = solution.jump(nums);
+		cout << ret << endl;
+	}
+#pragma endregion
+#pragma region 46.全排序
+	{
+		vector<int> nums = { 1,2,3 };
+		vector<vector<int>> ret = solution.permute(nums);
+		for (auto array : ret)
+		{
+			for (auto num : array)
+			{
+				cout << num << " ";
+			}
+			cout << endl;
+		}
 	}
 #pragma endregion
 
