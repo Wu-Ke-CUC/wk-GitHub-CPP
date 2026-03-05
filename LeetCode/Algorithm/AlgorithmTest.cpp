@@ -1453,6 +1453,54 @@ class Solution
 			return ret;
 		}
 		#pragma endregion
+		#pragma region 53.最大子数组和
+		int maxSubArray(vector<int>& nums) {
+			int temp = 0; int maxSum = nums[0];
+			for (int x : nums)
+			{
+				temp = max(temp + x, x);
+				maxSum = max(maxSum, temp);
+			}
+			return maxSum;
+		}
+		#pragma endregion
+		#pragma region 54.螺旋数组
+		vector<int> spiralOrder(vector<vector<int>>& matrix) {
+			int left = 0, right = matrix[0].size() - 1;
+			int head = 0, bottom = matrix.size() - 1;
+			vector<int> ret;
+			while (left <= right && head <= bottom)
+			{
+				for (int r1 = left; r1 <= right; r1++)
+				{
+					ret.push_back(matrix[head][r1]);
+				}
+				head++;
+				for (int c1 = head; c1 <= bottom; c1++)
+				{
+					ret.push_back(matrix[c1][right]);
+				}
+				right--;
+				if (head <= bottom)
+				{
+					for (int r2 = right; r2 >= left; r2--)
+					{
+						ret.push_back(matrix[bottom][r2]);
+					}
+					bottom--;
+				}
+				if (left <= right)
+				{
+					for (int c2 = bottom; c2 >= head; c2--)
+					{
+						ret.push_back(matrix[c2][left]);
+					}
+					left++;
+				}
+			}
+			return ret;
+		}
+		#pragma endregion
 
 };
 int main()
@@ -1800,6 +1848,14 @@ int main()
 			}
 			cout << endl;
 		}
+	}
+#pragma endregion
+#pragma region 54.螺旋数组
+	{
+		vector<vector<int>> nums = { {1,2,3},{4,5,6},{7,8,9} };
+		vector<int>ret = solution.spiralOrder(nums);
+		for (auto num : ret)cout << num << " ";
+		cout << endl;
 	}
 #pragma endregion
 
