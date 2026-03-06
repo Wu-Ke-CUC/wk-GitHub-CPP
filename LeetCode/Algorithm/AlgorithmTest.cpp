@@ -1501,6 +1501,55 @@ class Solution
 			return ret;
 		}
 		#pragma endregion
+		#pragma region 55.跳跃游戏
+		//bool dfs5(vector<int>& nums, int index)
+		//{
+		//	if (nums[index] == 0)return false;
+		//	if (index >= nums.size() - 1)return true;
+		//	vector<bool> st;
+		//	for (int i = 1; i <= nums[index]; i++)
+		//	{
+		//		if (dfs5(nums, index + i))
+		//		{
+		//			return true;
+		//		}
+		//	}
+		//	return false;
+		//}
+		//bool canJump(vector<int>& nums) {
+		//	return dfs5(nums, 0);
+		//}
+		bool canJump(vector<int>& nums) {
+			int maxReach = 0;
+			for (int i = 0; i < nums.size(); i++)
+			{
+				if (i > maxReach)return false;
+				maxReach = max(maxReach, i + nums[i]);
+				if (maxReach + nums[i] >= nums.size() - 1)return true;
+			}
+			return true;
+		}
+		#pragma endregion
+		#pragma region 56.合并区间
+		vector<vector<int>> merge(vector<vector<int>>& intervals) {
+			if (intervals.size() == 0)return {};
+			sort(intervals.begin(), intervals.end());
+			vector<vector<int>> ret;
+			for (int i = 0; i < intervals.size(); ++i)
+			{
+				int L = intervals[i][0], R = intervals[i][1];
+				if (ret.size() == 0 || ret.back()[1] < L)
+				{
+					ret.push_back({L,R});
+				}
+				else if (ret.back()[1] >= L && ret.back()[1] < R)
+				{
+					ret.back()[1] = R;
+				}
+			}
+			return ret;
+		}
+		#pragma endregion
 
 };
 int main()
@@ -1838,7 +1887,7 @@ int main()
 #pragma endregion
 #pragma region 47.全排序2
 	{
-		vector<int> nums = { 0,0,0,0,1,9 };
+		vector<int> nums = { 0,0,1,9 };
 		vector<vector<int>> ret = solution.permuteUnique(nums);
 		for (auto array : ret)
 		{
@@ -1856,6 +1905,26 @@ int main()
 		vector<int>ret = solution.spiralOrder(nums);
 		for (auto num : ret)cout << num << " ";
 		cout << endl;
+	}
+#pragma endregion
+#pragma region 55,跳跃游戏
+	{
+		vector<int> nums = { 3,2,1,0,4 };
+		cout << solution.canJump(nums) << endl;
+	}
+#pragma endregion
+#pragma region 56.合并区间
+	{
+		vector<vector<int>> intervals = { {1,3},{2,6},{8,10},{15,18} };
+		vector<vector<int>> merged = solution.merge(intervals);
+		for (auto nums : merged)
+		{
+			for (int num : nums)
+			{
+				cout << num << " ";
+			}
+			cout << endl;
+		}
 	}
 #pragma endregion
 
