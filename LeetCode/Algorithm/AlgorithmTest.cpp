@@ -1550,6 +1550,53 @@ class Solution
 			return ret;
 		}
 		#pragma endregion
+		#pragma region 57.插入区间
+		vector<vector<int>> insert(vector<vector<int>>& intervals, vector<int>& newInterval) {
+			int left = newInterval[0], right = newInterval[1];
+			vector<vector<int>> ret;
+			bool isPlaced = false;
+			for (int i = 0; i < intervals.size(); i++)
+			{
+				if (intervals[i][0] > right)
+				{
+					if (!isPlaced)
+					{
+						ret.push_back({ left,right });
+						isPlaced = true;
+					}
+					ret.push_back(intervals[i]);
+				}
+				else if (intervals[i][1] < left)
+				{
+					ret.push_back(intervals[i]);
+				}
+				else
+				{
+					left = min(left, intervals[i][0]);
+					right = max(right, intervals[i][1]);
+				}
+			}
+			if (!isPlaced)ret.push_back({ left,right });
+			return ret;
+		}
+		#pragma endregion
+		#pragma region 58.最后一个单词长度
+		int lengthOfLastWord(string s) {
+			if (s.size() == 0)return 0;
+			int index = s.size() - 1;
+			while (index >=0 &&s[index] == ' ')
+			{
+				index--;
+			}
+			int ret = 0;
+			while (index >= 0 && s[index] != ' ')
+			{
+				ret++;
+				index--;
+			}
+			return ret;
+		}
+		#pragma endregion
 
 };
 int main()
@@ -1925,6 +1972,13 @@ int main()
 			}
 			cout << endl;
 		}
+	}
+#pragma endregion
+#pragma region 58.最后一个单词长度
+	{
+		string s = "a";
+		int ret = solution.lengthOfLastWord(s);
+		cout << ret << endl;
 	}
 #pragma endregion
 
