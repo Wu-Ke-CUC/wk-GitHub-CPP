@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="Encapsulation/Encapsulation.vcxproj" Id="f4753748-6984-44b3-82d2-32925970dde4" />
+</Solution>

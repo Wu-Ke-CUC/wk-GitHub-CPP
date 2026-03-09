@@ -1664,6 +1664,74 @@ class Solution
 			return ret;
 		}
 		#pragma endregion
+		#pragma region 61.旋转链表
+		ListNode* rotateRight(ListNode* head, int k) {
+			if (head == NULL || k == 0)return head;
+			ListNode* slow = head;
+			ListNode* fast = head;
+			int n = 1;
+			for (int i = 0; i < k; i++)
+			{
+				if (!fast->next)
+				{
+					fast = head;
+					i = k / n * n - 1;
+					continue;
+				}
+				fast = fast->next;
+				n++;
+			}
+			while (fast->next)
+			{
+				slow = slow->next;
+				fast = fast->next;
+			}
+			fast->next = head;
+			ListNode* ret = slow->next;
+			slow->next = NULL;
+			return ret;
+		}
+		#pragma endregion
+		#pragma region 62.不同路径
+		//方法一
+		//int dfs5(int x, int y, int m, int n, vector<vector<int>> memo)
+		//{
+		//	if (x == n || y == m)return 1;
+		//	if (memo[y][n] != -1) return memo[y][x];
+		//	memo[y][x] = dfs5(x + 1, y, m, n, memo) + dfs5(x, y + 1, m, n, memo);
+		//	return memo[y][x];
+		//}
+		//int uniquePaths(int m, int n) {
+		//	vector<vector<int>> memo(m + 1, vector<int>(n + 1, -1));
+		//	return dfs5(1, 1, m, n, memo);
+		//}
+		//方法二
+		int uniquePaths(int m, int n) {
+			vector<vector<int>> dp(m, vector<int>(n, 1));
+			for (int i = 1; i < m; i++)
+			{
+				for (int j = 1; j < n; j++)
+				{
+					dp[i][j] = dp[i - 1][j] + dp[i][j - 1];
+				}
+			}
+			return dp[m - 1][n - 1];
+		}
+		//方法三
+		//int Factorial(int num)
+		//{
+		//	if (num == 0)return 1;
+		//	return num * Factorial(num - 1);
+		//}
+		//int Combnation(int m, int n)
+		//{
+		//	if (n > m)return Combnation(n, m);
+		//	return Factorial(m) / (Factorial(n) * Factorial(m - n));
+		//}
+		//int uniquePaths(int m, int n) {
+		//	return Combnation(m + n - 2, n - 1);
+		//}
+		#pragma endregion
 
 };
 int main()
@@ -2059,6 +2127,24 @@ int main()
 			}
 			cout << endl;
 		}
+	}
+#pragma endregion
+#pragma region 61.旋转链表
+	{
+		ListNode* list = new ListNode(1, new ListNode(2, new ListNode(3, new ListNode(4, new ListNode(5)))));
+		ListNode* ret = solution.rotateRight(list, 2);
+		while (ret)
+		{
+			cout << ret->val << " ";
+			ret = ret->next;
+		}
+		cout << endl;
+	}
+#pragma endregion
+#pragma region 62.不同路径
+	{
+		int ret = solution.uniquePaths(3, 7);
+		cout << ret << endl;
 	}
 #pragma endregion
 
