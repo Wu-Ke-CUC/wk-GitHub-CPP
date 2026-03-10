@@ -1732,6 +1732,103 @@ class Solution
 		//	return Combnation(m + n - 2, n - 1);
 		//}
 		#pragma endregion
+		#pragma region 63.不同路径2
+		int uniquePathsWithObstacles(vector<vector<int>>& obstacleGrid) {
+			int row = obstacleGrid.size();
+			int col = obstacleGrid[0].size();
+			vector<vector<int>> dp(row, vector<int>(col, 0));
+			dp[0][0] = (obstacleGrid[0][0] == 0);
+			for (int i = 0; i < row; i++)
+			{
+				for (int j = 0; j < col; j++)
+				{
+					if (obstacleGrid[i][j] == 1)
+					{
+						dp[i][j] = 0;
+						continue;
+					}
+					if (i >= 1 && j == 0)
+					{
+						dp[i][j] = dp[i - 1][j];
+					}
+					else if (i == 0 && j >= 1)
+					{
+						dp[i][j] = dp[i][j - 1];
+					}
+					else if(i >= 1 && j >= 1)
+					{
+						dp[i][j] = dp[i - 1][j] + dp[i][j - 1];
+					}
+				}
+			}
+			return dp[row - 1][col - 1];
+		}
+		#pragma endregion
+		#pragma region 64.最小路径和
+		//方法1
+		//int dfs6(vector<vector<int>>& grid, int x, int y, int m, int n,vector<vector<int>>& memo)
+		//{
+		//	if (x == m - 1 && y == n - 1)return grid[x][y];
+		//	if (memo[x][y] != -1)return memo[x][y];
+		//	else if (x == m - 1)
+		//	{
+		//		return grid[x][y] + dfs6(grid, x, y + 1, m, n, memo);
+		//	}
+		//	else if (y == n - 1)
+		//	{
+		//		return grid[x][y] + dfs6(grid, x + 1, y, m, n, memo);
+		//	}
+		//	else
+		//	{
+		//		return grid[x][y] + min(dfs6(grid, x, y + 1, m, n, memo), dfs6(grid, x + 1, y, m, n, memo));
+		//	}
+		//}
+		//int minPathSum(vector<vector<int>>& grid) {
+		//	int m = grid.size();
+		//	int n = grid[0].size();
+		//	vector<vector<int>>memo(m, vector<int>(n, -1));
+		//	return dfs6(grid, 0, 0, m, n, memo);
+		//}
+		//方法2
+		//int minPathSum(vector<vector<int>>& grid) {
+		//	int row = grid.size();
+		//	int col = grid[0].size();
+		//	if (row == 0 || col == 0)return 0;
+		//	vector<vector<int>> dp(row, vector<int>(col));
+		//	dp[0][0] = grid[0][0];
+		//	for (int i = 1; i < row; i++)
+		//	{
+		//		dp[i][0] = dp[i - 1][0] + grid[i][0];
+		//	}
+		//	for (int i = 1; i < col; i++)
+		//	{
+		//		dp[0][i] = dp[0][i - 1] + grid[0][i];
+		//	}
+		//	for (int i = 1; i < row; i++)
+		//	{
+		//		for (int j = 1; j < col; j++)
+		//		{
+		//			dp[i][j] = min(dp[i - 1][j], dp[i][j - 1]) + grid[i][j];
+		//		}
+		//	}
+		//	return dp[row - 1][col - 1];
+		//}
+		//方法3
+		int minPathSum(vector<vector<int>>& grid){
+			int row = grid.size(), col = grid[0].size();
+			if (row == 0 || col == 0)return 0;
+			vector<int> dp(col);
+			for (int i = 0; i < row; i++)
+			{
+				dp[0] += grid[i][0];
+				for (int j = 1; j < col; j++)
+				{
+					dp[j] = (i > 0 ? min(dp[j - 1], dp[j]) : dp[j - 1]) + grid[i][j];
+				}
+			}
+			return dp[col - 1];
+		}
+		#pragma endregion
 
 };
 int main()
@@ -2145,6 +2242,18 @@ int main()
 	{
 		int ret = solution.uniquePaths(3, 7);
 		cout << ret << endl;
+	}
+#pragma endregion
+#pragma region 63.不同路径
+	{
+		vector<vector<int>> obstacles = { {0,0,1} };
+		cout << solution.uniquePathsWithObstacles(obstacles) << endl;
+	}
+#pragma endregion
+#pragma region 64.最小路径和
+	{
+		vector<vector<int>> path = { {1,2,3} ,{4,5,6} };
+		cout << solution.minPathSum(path) << endl;
 	}
 #pragma endregion
 
