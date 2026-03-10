@@ -14,6 +14,12 @@ public:
 		this->age = age;
 		this->id = id;
 	}
+	Student(const Student& student)	//拷贝构造
+	{
+		name = student.name;
+		age = student.age;
+		id = student.id;
+	}
 	void setName(string name)
 	{
 		this->name = name;
@@ -67,6 +73,34 @@ bool CubeIsEqual(Cube cube1, Cube cube2) noexcept
 	return (cube1.length == cube2.length && cube1.width == cube2.width && cube1.height == cube2.height);
 }
 
+class Person
+{
+public:
+	static string name;			 //类内声明
+	int age;
+	int* height;
+	Person(int age,int height):age(age),height(new int(height)){}//初始化列表
+	//Person(int age, int height)
+	//{
+	//	this->age = age;
+	//	this->height = new int(height);
+	//}
+	~Person()
+	{
+		if (height != NULL)
+		{
+			delete height;
+			height = NULL;
+		}
+	}
+	Person(const Person& person)
+	{
+		age = person.age;
+		height = new int(*person.height);	//深拷贝，重新开辟空间
+	}
+};
+string Person::name = "Zhangsan";//类外初始化
+
 int main()
 {
 	Circle circle;							//实例化
@@ -86,5 +120,11 @@ int main()
 	Cube cube1 = Cube(10, 10, 10);
 	Cube cube2 = Cube(10, 10, 10);
 	cout << CubeIsEqual(cube1, cube2) << " " << cube1.IsEqualToOther(cube2) << endl;
+
+	Person person(18, 180);
+	cout << person.age << " " << *person.height << endl;
+	Person person1(person);
+	cout << person1.age << " " << *person1.height << endl;
+
 	return 0;
 }
