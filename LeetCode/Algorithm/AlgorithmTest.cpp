@@ -1126,58 +1126,58 @@ class Solution
 			return true;
 		}
 		#pragma endregion
-		/*#pragma region 37.解数独
-		int line[9];
-		int column[9];
-		int block[3][3];
-		bool valid;
-		vector<pair<int, int>> spaces;
+		//#pragma region 37.解数独 //非自主
+		//int line[9];
+		//int column[9];
+		//int block[3][3];
+		//bool valid;
+		//vector<pair<int, int>> spaces;
 
-		void flip(int i, int j, int digit) {
-			line[i] ^= (1 << digit);
-			column[j] ^= (1 << digit);
-			block[i / 3][j / 3] ^= (1 << digit);
-		}
+		//void flip(int i, int j, int digit) {
+		//	line[i] ^= (1 << digit);
+		//	column[j] ^= (1 << digit);
+		//	block[i / 3][j / 3] ^= (1 << digit);
+		//}
 
-		void dfs(vector<vector<char>>& board, int pos) {
-			if (pos == spaces.size()) {
-				valid = true;
-				return;
-			}
+		//void dfs(vector<vector<char>>& board, int pos) {
+		//	if (pos == spaces.size()) {
+		//		valid = true;
+		//		return;
+		//	}
 
-			auto [i, j] = spaces[pos];
-			int mask = ~(line[i] | column[j] | block[i / 3][j / 3]) & 0x1ff;
-			for (; mask && !valid; mask &= (mask - 1)) {
-				int digitMask = mask & (-mask);
-				int digit = __builtin_ctz(digitMask);
-				flip(i, j, digit);
-				board[i][j] = digit + '0' + 1;
-				dfs(board, pos + 1);
-				flip(i, j, digit);
-			}
-		}
+		//	auto [i, j] = spaces[pos];
+		//	int mask = ~(line[i] | column[j] | block[i / 3][j / 3]) & 0x1ff;
+		//	for (; mask && !valid; mask &= (mask - 1)) {
+		//		int digitMask = mask & (-mask);
+		//		int digit = __builtin_ctz(digitMask);
+		//		flip(i, j, digit);
+		//		board[i][j] = digit + '0' + 1;
+		//		dfs(board, pos + 1);
+		//		flip(i, j, digit);
+		//	}
+		//}
 
-		void solveSudoku(vector<vector<char>>& board) {
-			memset(line, 0, sizeof(line));
-			memset(column, 0, sizeof(column));
-			memset(block, 0, sizeof(block));
-			valid = false;
+		//void solveSudoku(vector<vector<char>>& board) {
+		//	memset(line, 0, sizeof(line));
+		//	memset(column, 0, sizeof(column));
+		//	memset(block, 0, sizeof(block));
+		//	valid = false;
 
-			for (int i = 0; i < 9; ++i) {
-				for (int j = 0; j < 9; ++j) {
-					if (board[i][j] == '.') {
-						spaces.emplace_back(i, j);
-					}
-					else {
-						int digit = board[i][j] - '0' - 1;
-						flip(i, j, digit);
-					}
-				}
-			}
+		//	for (int i = 0; i < 9; ++i) {
+		//		for (int j = 0; j < 9; ++j) {
+		//			if (board[i][j] == '.') {
+		//				spaces.emplace_back(i, j);
+		//			}
+		//			else {
+		//				int digit = board[i][j] - '0' - 1;
+		//				flip(i, j, digit);
+		//			}
+		//		}
+		//	}
 
-			dfs(board, 0);
-		}
-		#pragma endregion*/
+		//	dfs(board, 0);
+		//}
+		//#pragma endregion
 		#pragma region 38.外观数列
 		string countAndSay(int n) {
 			if (n == 1)return "1";
@@ -1829,6 +1829,29 @@ class Solution
 			return dp[col - 1];
 		}
 		#pragma endregion
+		#pragma region 65.有效数字
+		bool isNumber(string s) {
+
+		}
+		#pragma endregion
+		#pragma region 66.加一
+		vector<int> plusOne(vector<int>& digits) {
+			int n = digits.size();
+			for (int i = n - 1; i >= 1; i--)
+			{
+				if (digits[i] == 9)
+				{
+					digits[i] = 0;
+					continue;
+				}
+				digits[i] += 1;
+				return digits;
+			}
+			vector<int> ret(n + 1);
+			ret[0] = 1;
+			return ret;
+		}
+		#pragma endregion
 
 };
 int main()
@@ -2254,6 +2277,17 @@ int main()
 	{
 		vector<vector<int>> path = { {1,2,3} ,{4,5,6} };
 		cout << solution.minPathSum(path) << endl;
+	}
+#pragma endregion
+#pragma region 66.加一
+	{
+		vector<int> digits = { 9,9,8 };
+		vector<int> ret = solution.plusOne(digits);
+		for (int num : ret)
+		{
+			cout << num;
+		}
+		cout<<endl;
 	}
 #pragma endregion
 
