@@ -4,4 +4,5 @@
     <Platform Name="x86" />
   </Configurations>
   <Project Path="Encapsulation/Encapsulation.vcxproj" Id="f4753748-6984-44b3-82d2-32925970dde4" />
+  <Project Path="Friend/Friend.vcxproj" Id="e986bec6-67c8-4ded-82a0-ad9adece0aa8" />
 </Solution>
