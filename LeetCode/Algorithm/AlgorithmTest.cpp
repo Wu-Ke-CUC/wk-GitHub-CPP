@@ -1932,6 +1932,50 @@ class Solution
 			return ret;
 		}
 		#pragma endregion
+		#pragma region 69.x的平方根
+		//int mySqrt(int x) {
+		//	int ret = 1;
+		//	while (pow(ret + 1, 2) < x)
+		//	{
+		//		ret++;
+		//	}
+		//	return ret;
+		//}
+		int mySqrt(int x) {
+			int left = 0;
+			int right = x;
+			int ret = 0;
+			while (left <= right)
+			{
+				int mid = right + (left - right) / 2;
+				if ((long long)mid * mid <= x)
+				{
+					ret = mid;
+					right = mid + 1;
+				}
+				else
+				{
+					left = mid - 1;
+				}
+			}
+			return ret;
+		}
+		#pragma endregion
+		#pragma region 70.爬楼梯
+		int climbStairs(int n) {
+			if (n == 1)return 1;
+			if (n == 2)return 2;
+			int bef2 = 1, bef1 = 2;
+			int ret;
+			for (int i = 3; i <= n; i++)
+			{
+				ret = bef2 + bef1;
+				bef2 = bef1;
+				bef1 = ret;
+			}
+			return ret;
+		}
+		#pragma endregion
 
 };
 int main()
