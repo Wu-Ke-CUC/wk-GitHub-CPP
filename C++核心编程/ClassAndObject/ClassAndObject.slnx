@@ -7,4 +7,5 @@
   <Project Path="Friend/Friend.vcxproj" Id="e986bec6-67c8-4ded-82a0-ad9adece0aa8" />
   <Project Path="inherit/inherit.vcxproj" Id="362415c4-e24f-46fa-b3aa-ed4cd7f3f7f9" />
   <Project Path="OperateReload/OperateReload.vcxproj" Id="d3941fdc-100a-43ab-b74a-3fa8e81758e2" />
+  <Project Path="Polymorphism/Polymorphism.vcxproj" Id="cf2c0654-7386-4e3c-9138-21dcbdcc71e7" />
 </Solution>
