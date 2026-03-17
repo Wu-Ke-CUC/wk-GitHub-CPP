@@ -1,0 +1,5 @@
+文本文件，二进制文件
+#include<fstream>
+写操作：  1,ofstream ofs; 2,ofs.open("path",opening way); 3,ofs<<"input content" 4,ofs.close();
+读操作：  1,ifstream ifs; 2,ifs.open("path",opening way); 3,判断读取是否成功 4,ifs>> 5,-->ifs.close();
+读写操作：1,fstream
