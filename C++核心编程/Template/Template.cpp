@@ -41,6 +41,20 @@ T MyAdd(T element1, T element2)
 	return element1 + element2;
 }
 
+template<typename NameType,typename AgeType = int>//默认类型
+class Person
+{
+public:
+	Person(NameType name, AgeType age)
+	{
+		this->name = name;
+		this->age = age;
+	}
+
+	NameType name;
+	AgeType age;
+};
+
 int main()
 {
 	int intNum1 = 10;
@@ -66,6 +80,9 @@ int main()
 	char a = 55;
 	int b = 3;
 	cout << MyAdd<char>(a, b) << endl;
+
+	Person<string, int> p = { "zhangsan",18 };
+	cout << p.name << " " << p.age << endl;
 
 	return 0;
 }

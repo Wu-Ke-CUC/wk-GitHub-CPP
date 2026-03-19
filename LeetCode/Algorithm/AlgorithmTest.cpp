@@ -2068,6 +2068,63 @@ class Solution
 			return false;
 		}
 		#pragma endregion
+		#pragma region 75.颜色分类
+		void sortColors(vector<int>& nums) {
+			const int right = nums.size() - 1;
+			quickSort(nums, 0, right);
+		}
+		void quickSort(vector<int>& num, int left, int right)
+		{
+			if (left > right)return;
+			const int base = num[left];
+			int l = left, r = right;
+			while (l != r)
+			{
+				while (l < r && num[r] >= base)r--;
+				if (l < r)num[l++] = num[r];
+				while (l < r && num[l] <= base)l++;
+				if (l < r)num[r--] = num[l];
+			}
+			num[l] = base;
+			quickSort(num, left, l - 1);
+			quickSort(num, l + 1, right);
+		}
+		#pragma endregion
+		#pragma region 76.最小覆盖子串
+		string minWindow(string s, string t) {
+			unordered_map<char, int> need, window;  // need记录t中字符需求，window记录窗口内字符出现次数
+			for (char c : t) need[c]++;              // 统计t中每个字符的个数
+			int left = 0, right = 0;                 // 滑动窗口左右指针
+			int valid = 0;                            // 记录窗口中已满足需求（字符出现次数达标）的字符种类数
+			int start = 0, len = INT_MAX;             // 记录最小子串的起始位置和长度
+			while (right < s.size()) {
+				char c = s[right];                     // 即将移入窗口的字符
+				right++;                                // 扩大窗口
+				if (need.count(c)) {                    // 如果当前字符是t中需要的
+					window[c]++;                         // 窗口内该字符计数加1
+					if (window[c] == need[c]) {          // 当该字符出现次数达到需求时
+						valid++;                           // 满足的字符种类加1
+					}
+				}
+				// 当窗口已包含t中所有字符（即valid等于need中不同字符的个数）时，尝试收缩窗口
+				while (valid == need.size()) {
+					if (right - left < len) {            // 更新最小长度
+						start = left;
+						len = right - left;
+					}
+					char d = s[left];                     // 即将移出窗口的字符
+					left++;                                // 缩小窗口
+					if (need.count(d)) {                    // 如果移出的字符是t中需要的
+						if (window[d] == need[d]) {          // 移出前该字符刚好满足需求
+							valid--;                           // 满足的字符种类减少
+						}
+						window[d]--;                           // 窗口内该字符计数减1
+					}
+				}
+			}
+			return len == INT_MAX ? "" : s.substr(start, len);
+		}
+		#pragma endregion
 
 };
 int main()
@@ -2528,6 +2585,12 @@ int main()
 			}
 			cout << endl;
 		}
+	}
+#pragma endregion
+#pragma region 76.最小覆盖子串
+	{
+		string s = "ADOBECODEBANC", t = "ABC";
+		cout << solution.minWindow(s, t) << endl;
 	}
 #pragma endregion
 
