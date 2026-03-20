@@ -2125,6 +2125,54 @@ class Solution
 			return len == INT_MAX ? "" : s.substr(start, len);
 		}
 		#pragma endregion
+		#pragma region 77.组合
+		vector<vector<int>> combine(int n, int k) {
+			vector<vector<int>> ans;
+			if (k == 1)
+			{
+				for (int i = 1; i <= n; i++)
+				{
+					ans.push_back({ i });
+				}
+				return ans;
+			}
+			if (n >= k)
+			{
+				vector<vector<int>> bef = combine(n - 1, k);
+				vector<vector<int>> add = combine(n - 1, k - 1);
+				for (auto nums : bef)
+				{
+					ans.push_back(nums);
+				}
+				for (auto nums : add)
+				{
+					nums.push_back(n);
+					ans.push_back(nums);
+				}
+			}
+			return ans;
+		}
+		#pragma endregion
+		#pragma region 78.子集
+		void dfs5(vector<vector<int>>& ret, vector<int>& temp,vector<int>& nums,int now)
+		{
+			if (now == nums.size())
+			{
+				ret.push_back(temp);
+				return;
+			}
+			temp.push_back(nums[now]);
+			dfs5(ret, temp, nums, now + 1);
+			temp.pop_back();
+			dfs5(ret, temp, nums, now + 1);
+		}
+		vector<vector<int>> subsets(vector<int>& nums) {
+			vector<int> temp;
+			vector<vector<int>> ret;
+			dfs5(ret, temp, nums, 0);
+			return ret;
+		}
+		#pragma endregion
 
 };
 int main()
@@ -2591,6 +2639,34 @@ int main()
 	{
 		string s = "ADOBECODEBANC", t = "ABC";
 		cout << solution.minWindow(s, t) << endl;
+	}
+#pragma endregion
+#pragma region 77.组合
+	{
+		vector<vector<int>> ret = solution.combine(5, 2);
+		for (auto nums : ret)
+		{
+			for (auto num : nums) 
+			{
+				cout << num << " ";
+			}
+			cout << endl;
+		}
+	}
+#pragma endregion
+#pragma region 78.子集
+	{
+		vector<vector<int>> ans;
+		vector<int> nums = { 1,2,3 };
+		ans = solution.subsets(nums);
+		for (auto nums : ans)
+		{
+			for (auto num : nums)
+			{
+				cout << num << " ";
+			}
+			cout << endl;
+		}
 	}
 #pragma endregion
 
