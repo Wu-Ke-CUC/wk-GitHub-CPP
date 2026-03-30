@@ -55,6 +55,49 @@ public:
 	AgeType age;
 };
 
+class IProduct
+{
+	virtual void Initilize()
+	{
+
+	}
+};
+
+template <class T>
+class AbstrectFectory
+{
+private:
+	T Creat()
+	{
+
+	}
+};
+class Enemy :IProduct
+{
+public:
+	int hp;
+	virtual void Initilize()
+	{
+
+	}
+};
+class Goblin :public Enemy
+{
+public:
+	void Initilize() override
+	{
+
+	}
+};
+class GoblinFactory :public AbstrectFectory<Enemy>
+{
+public:
+	Goblin Creat()
+	{
+
+	}
+};
+
 int main()
 {
 	int intNum1 = 10;
