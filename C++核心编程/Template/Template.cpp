@@ -1,6 +1,5 @@
-#include<iostream>
-#include<vector>
-using namespace std;
+#include"Person.cpp"//方法一
+//方法二：将.h文件和.cpp文件写在一起，文件后缀名为.hpp
 
 template<typename T>
 void MySwap(T& element1, T& element2) noexcept	//类型要一致
@@ -41,19 +40,65 @@ T MyAdd(T element1, T element2)
 	return element1 + element2;
 }
 
-template<typename NameType,typename AgeType = int>//默认类型
-class Person
+//template<typename NameType,typename AgeType = int>//默认类型
+//class Person
+//{
+//public:
+//	Person(NameType name, AgeType age);
+//	//{
+//	//	this->name = name;
+//	//	this->age = age;
+//	//}
+//	void ShowInfo();
+//	NameType name;
+//	AgeType age;
+//};
+//template<typename NameType, typename AgeType>
+//Person<NameType, AgeType>::Person(NameType name, AgeType age)
+//{
+//	this->name = name;
+//	this->age = age;
+//}
+//template<typename NameType, typename AgeType>
+//void Person<NameType, AgeType>::ShowInfo()
+//{
+//	cout << this->name << " " << this->age << endl;
+//}
+template<typename NameType, typename AgeType>
+class Student;
+template<typename NameType, typename AgeType>
+void ShowStudent2(Student<NameType, AgeType> student)
 {
-public:
-	Person(NameType name, AgeType age)
+	cout << student.name << " " << student.age << endl;
+}
+template<typename NameType,typename AgeType = int>//默认类型
+class Student
+{
+	//全局函数类内实现
+	friend void ShowStudent1(Student<NameType, AgeType> student)
 	{
-		this->name = name;
-		this->age = age;
+		cout << student.name << " " << student.age << endl;
 	}
-
+	//全局函数类外实现
+	friend void ShowStudent2<>(Student<NameType, AgeType> student);
+public:
+	Student(NameType name, AgeType age);
+	void ShowInfo();
+private:
 	NameType name;
 	AgeType age;
 };
+template<typename NameType, typename AgeType>
+Student<NameType, AgeType>::Student(NameType name, AgeType age)
+{
+	this->name = name;
+	this->age = age;
+}
+template<typename NameType, typename AgeType>
+void Student<NameType, AgeType>::ShowInfo()
+{
+	cout << this->name << " " << this->age << endl;
+}
 
 class IProduct
 {
@@ -126,6 +171,10 @@ int main()
 
 	Person<string, int> p = { "zhangsan",18 };
 	cout << p.name << " " << p.age << endl;
+	p.ShowInfo();
 
+	Student<string, int> s = { "Tom",20 };
+	ShowStudent1(s);
+	ShowStudent2(s);
 	return 0;
 }
