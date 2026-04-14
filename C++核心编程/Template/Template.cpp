@@ -143,6 +143,80 @@ public:
 	}
 };
 
+template<class T>
+class MyArray
+{
+private:
+	T* arr;
+	int capacity;
+	int size;
+public:
+	MyArray(int capacity)
+	{
+		arr = new T[capacity];
+		this->capacity = capacity;
+		size = 0;
+	}
+	~MyArray()
+	{
+		if (arr != NULL)
+		{
+			delete[] arr;
+			arr = NULL;
+		}
+	}
+	MyArray(const MyArray& arr)
+	{
+		capacity = arr.capacity;
+		size = arr.size;
+		this->arr = new T[capacity];
+		for (int i = 0; i < arr.size; i++)
+		{
+			this->arr[i] = arr[i];
+		}
+	}
+	MyArray& operator=(const MyArray& arr)
+	{
+		if (this->arr != NULL)
+		{
+			delete[] arr;
+			arr = NULL;
+			capacity = 0;
+			size = 0;
+		}
+		capacity = arr.capacity;
+		size = arr.size;
+		this->arr = new T[capacity];
+		for (int i = 0; i < arr.size; i++)
+		{
+			this->arr[i] = arr[i];
+		}
+		return *this;
+	}
+	void Push_Back(T& value)
+	{
+		if (capacity == size)return;
+		arr[size++] = T;
+	}
+	void Pop_Back()
+	{
+		if (size == 0)return;
+		size--;
+	}
+	T& operator[](int index)
+	{
+		return arr[index];
+	}
+	int GetCapacity()
+	{
+		return capacity;
+	}
+	int GetSize()
+	{
+		return size;
+	}
+};
+
 int main()
 {
 	int intNum1 = 10;
