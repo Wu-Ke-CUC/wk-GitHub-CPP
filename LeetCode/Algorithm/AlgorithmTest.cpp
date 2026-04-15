@@ -2173,6 +2173,64 @@ class Solution
 			return ret;
 		}
 		#pragma endregion
+		#pragma region 79.单词搜索
+		vector<pair<int, int>> direction = { {1,0},{-1,0},{0,1},{0,-1} };
+		bool check(vector<vector<char>>& board, vector<vector<int>>& visited,string word,int i,int j,int k)
+		{
+			if (board[i][j] != word[k])return false;
+			else if (k == word.length() - 1)return true;
+			bool result = false;
+			visited[i][j] = 1;
+			for (auto p : direction)
+			{
+				int newi = i + p.first, newj = j + p.second;
+				if (newi < board.size() && newi >= 0 && newj < board[0].size() && newj >= 0 && visited[newi][newj] != 1)
+				{
+					if (check(board, visited, word, newi, newj, k + 1))
+					{
+						result = true;
+						break;
+					}
+				}
+			}
+			visited[i][j] = 0;
+			return result;
+		}
+		bool exist(vector<vector<char>>& board, string word) {
+			int r = board.size(), l = board[0].size();
+			vector<vector<int>> visited(r, vector<int>(l));
+			for (int i = 0; i < r; i++)
+			{
+				for (int j = 0; j < l; j++)
+				{
+					if (check(board, visited, word, i, j, 0))return true;
+				}
+			}
+			return false;
+		}
+		#pragma endregion
+		#pragma region 80.删除有序数组中重复的相
+		int removeDuplicates2(vector<int>& nums) {
+			int slow = 1, mid = 1;
+			for (int fast = 1; fast < nums.size(); fast++)
+			{
+				if (nums[fast] != nums[fast - 1])
+				{
+					if (fast - mid >= 2)
+					{
+						nums[slow++] = nums[mid];
+					}
+					mid = fast;
+					nums[slow++] = nums[fast];
+				}
+				else if (fast == nums.size() - 1)
+				{
+					nums[slow++] = nums[fast];
+				}
+			}
+			return slow;
+		}
+		#pragma endregion
 
 };
 int main()
@@ -2399,8 +2457,8 @@ int main()
 #pragma endregion
 #pragma region 26.删除有序数组中的重复项
 	{
-		vector<int> nums = { 1,2,3,3,3,4,4,5,6,7 };
-		int ret = solution.removeDuplicates(nums);
+		vector<int> nums = { 1,2,3,3,3,4,4,4,5,5,6,7 };
+		int ret = solution.removeDuplicates2(nums);
 		cout << ret << endl;
 	}
 #pragma endregion
