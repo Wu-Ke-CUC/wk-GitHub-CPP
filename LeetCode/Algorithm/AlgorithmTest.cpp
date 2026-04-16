@@ -986,7 +986,7 @@ class Solution
 				if (nums[mid] == target)return mid;
 				if (nums[left] <= nums[mid])
 				{
-					if (target >= nums[left] && target <= nums[mid])
+					if (target >= nums[left] && target < nums[mid])
 					{
 						right = mid - 1;
 					}
@@ -2229,6 +2229,62 @@ class Solution
 				}
 			}
 			return slow;
+		}
+		#pragma endregion
+		#pragma region 81.搜索选择排序数组
+		bool search2(vector<int>& nums, int target) {
+			if (nums.size() == 0)return false;
+			if (nums.size() == 1)return nums[0] == target;
+			int left = 0, right = nums.size() - 1;
+			while (left <= right)
+			{
+				int mid = (left + right) / 2;
+				if (nums[mid] == target)return true;
+				if (nums[left] == nums[mid] && nums[mid] == nums[right])
+				{
+					left++; right--;
+				}
+				else if (nums[left] <= nums[mid])
+				{
+					if (target >= nums[left] && target < nums[mid])
+					{
+						right = mid - 1;
+					}
+					else
+					{
+						left = mid + 1;
+					}
+				}
+				else
+				{
+					if (target > nums[mid] && target <= nums[right])
+					{
+						left = mid + 1;
+					}
+					else
+					{
+						right = mid - 1;
+					}
+				}
+			}
+			return false;
+		}
+		#pragma endregion
+		#pragma region 82.删除排序列表中重复的元素
+		ListNode* deleteDuplicates(ListNode* head) {
+			if (head == NULL)return NULL;
+			if (head->next == NULL)return head;
+			ListNode* temp = head;
+			if (head->val == head->next->val)
+			{
+				while (temp && temp->val == head->val)
+				{
+					temp = temp->next;
+				}
+				return deleteDuplicates(temp);
+			}
+			head->next = deleteDuplicates(head->next);
+			return head;
 		}
 		#pragma endregion
 

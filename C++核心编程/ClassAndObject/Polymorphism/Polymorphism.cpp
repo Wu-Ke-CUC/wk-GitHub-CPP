@@ -44,11 +44,37 @@ void DoSpeak(Animal& animal)
 	animal.Speak();
 }
 
+class A
+{
+	char a[2];
+public:
+	virtual void aa(){}
+};
+class B :public virtual A
+{
+	char a[2];
+	char b[2];
+public:
+	virtual void aa(){}
+	virtual void bb(){}
+};
+class C :public virtual B
+{
+	char a[2];
+	char b[2];
+	char c[2];
+public:
+	virtual void aa(){}
+	virtual void bb(){}
+	virtual void cc(){}
+};
 int main()
 {
 	Animal* cat = new Cat("Kitte");
 	cat->Speak();
 	delete cat;
+
+	cout << sizeof(A) << endl << sizeof(B) << endl << sizeof(C);
 
 	return 0;
 }
