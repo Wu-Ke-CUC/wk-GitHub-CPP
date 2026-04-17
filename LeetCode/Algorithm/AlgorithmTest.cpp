@@ -2270,8 +2270,8 @@ class Solution
 			return false;
 		}
 		#pragma endregion
-		#pragma region 82.删除排序列表中重复的元素
-		ListNode* deleteDuplicates(ListNode* head) {
+		#pragma region 82.删除排序列表中的重复元素2
+		ListNode* deleteDuplicates2(ListNode* head) {
 			if (head == NULL)return NULL;
 			if (head->next == NULL)return head;
 			ListNode* temp = head;
@@ -2285,6 +2285,48 @@ class Solution
 			}
 			head->next = deleteDuplicates(head->next);
 			return head;
+		}
+		#pragma endregion
+		#pragma region 83.删除排序列表中的重复元素
+		ListNode* deleteDuplicates(ListNode* head) {
+			if (head == NULL)return NULL;
+			int num = head->val;
+			ListNode* slow = head;
+			ListNode* fast = head->next;
+			while (fast)
+			{
+				if (fast->val != num)
+				{
+					slow->next = fast;
+					slow = slow->next;
+					num = slow->val;
+				}
+				fast = fast->next;
+			}
+			slow->next = NULL;
+			return head;
+		}
+		#pragma endregion
+		#pragma region 84.柱状图中最大的矩形
+		int largestRectangleArea(vector<int>& heights) {
+			heights.insert(heights.begin(), 0);
+			heights.push_back(0);
+			stack<int> s;
+			int ret = 0;
+			for (int i = 0; i < heights.size(); i++)
+			{
+				while (!s.empty() && heights[i] < heights[s.top()])
+				{
+					int h = heights[s.top()];
+					s.pop();
+					int left = s.empty() ? 0 : s.top();
+					int width = i - left - 1;
+					int area = h * width;
+					ret = max(ret, area);
+				}
+				s.push(i);
+			}
+			return ret;
 		}
 		#pragma endregion
 
@@ -2781,6 +2823,13 @@ int main()
 			}
 			cout << endl;
 		}
+	}
+#pragma endregion
+#pragma region 84.柱状图中最大的矩形
+	{
+		vector<int> heights = { 2,1,2 };
+		int maxSquare = solution.largestRectangleArea(heights);
+		cout << maxSquare << endl;
 	}
 #pragma endregion
 
