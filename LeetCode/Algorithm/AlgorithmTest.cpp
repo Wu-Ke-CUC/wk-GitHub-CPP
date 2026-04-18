@@ -2329,6 +2329,45 @@ class Solution
 			return ret;
 		}
 		#pragma endregion
+		#pragma region 85.最大矩形
+		int maximalRectangle(vector<vector<char>>& matrix) {
+			int row = matrix.size();
+			int col = matrix[0].size();
+			int ret = 0;
+			for (int i = 0; i < row; i++)
+			{
+				for (int j = 0; j < col; j++)
+				{
+
+				}
+			}
+		}
+		#pragma endregion
+		#pragma region 86.分隔矩形
+		ListNode* partition(ListNode* head, int x) {
+			ListNode* small = new ListNode(0);
+			ListNode* smallHead = small;
+			ListNode* big = new ListNode(0);
+			ListNode* bigHead = big;
+			while (head)
+			{
+				if (head->val < x)
+				{
+					small->next = head;
+					small = small->next;
+				}
+				else
+				{
+					big->next = head;
+					big = big->next;
+				}
+				head = head->next;
+			}
+			big->next = NULL;
+			small->next = bigHead->next;
+			return smallHead->next;
+		}
+		#pragma endregion
 
 };
 int main()
@@ -2830,6 +2869,18 @@ int main()
 		vector<int> heights = { 2,1,2 };
 		int maxSquare = solution.largestRectangleArea(heights);
 		cout << maxSquare << endl;
+	}
+#pragma endregion
+#pragma region 86.分隔链表
+	{
+		ListNode* list = new ListNode(1, new ListNode(4, new ListNode(3, new ListNode(5, new ListNode(2)))));
+		ListNode* ret = solution.partition(list, 3);
+		while (list)
+		{
+			cout << list->val << " ";
+			list = list->next;
+		}
+		cout << endl;
 	}
 #pragma endregion
 
