@@ -2393,6 +2393,28 @@ class Solution
 			}
 		}
 		#pragma endregion
+		#pragma region 90.子集2
+		void dfs7(vector<vector<int>>&ret,vector<int>& element,vector<int>& nums,int k)
+		{
+			if (k == nums.size()) 
+			{
+				ret.push_back(element);
+				return;
+			}
+			element.push_back(nums[k]);
+			dfs7(ret, element, nums, k + 1);
+			element.pop_back();
+			while (k < nums.size() - 1 && nums[k] == nums[k + 1])k++;
+			dfs7(ret, element, nums, k + 1);
+		}
+		vector<vector<int>> subsetsWithDup(vector<int>& nums) {
+			vector<vector<int>> ret;
+			vector<int> element;
+			sort(nums.begin(), nums.end());
+			dfs7(ret, element, nums, 0);
+			return ret;
+		}
+		#pragma endregion
 
 };
 int main()
@@ -2906,6 +2928,20 @@ int main()
 			list = list->next;
 		}
 		cout << endl;
+	}
+#pragma endregion
+#pragma region 90.子集2
+	{
+		vector<int>nums = { 1,2,2 };
+		vector<vector<int>> ans = solution.subsetsWithDup(nums);
+		for (auto nums : ans)
+		{
+			for (auto num : nums)
+			{
+				cout << num << " ";
+			}
+			cout << endl;
+		}
 	}
 #pragma endregion
 
