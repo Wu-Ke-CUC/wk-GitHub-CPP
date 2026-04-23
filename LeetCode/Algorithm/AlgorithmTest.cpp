@@ -2437,32 +2437,22 @@ class Solution
 		#pragma endregion
 		#pragma region 92.·´×ªÁ´±í2
 		ListNode* reverseBetween(ListNode* head, int left, int right) {
-			int cur = 1;
-			stack<int> s;
-			ListNode* ret = head;
-			while (head)
-			{
-				if (cur == left)
-				{
-					ListNode* fast = head;
-					while (cur <= right)
-					{
-						s.push(fast->val);
-						fast = fast->next;
-						cur++;
-					}
-					while (!s.empty())
-					{
-						int val = s.top();
-						s.pop();
-						head->next = new ListNode(val, NULL);
-						head = head->next;
-					}
-				}
-				head = head->next;
-				cur++;
+			if (!head || left == right) return head;
+			ListNode dummy(0);
+			dummy.next = head;
+			ListNode* prev = &dummy;
+			for (int i = 1; i < left; ++i) {
+				prev = prev->next;
 			}
-			return head;
+			ListNode* curr = prev->next;
+			ListNode* next = nullptr;
+			for (int i = left; i < right; ++i) {
+				next = curr->next;
+				curr->next = next->next;
+				next->next = prev->next;
+				prev->next = next;
+			}
+			return dummy.next;
 		}
 		#pragma endregion
 
