@@ -13,6 +13,14 @@ struct ListNode {
 	ListNode(int x) : val(x), next(nullptr) {}
 	ListNode(int x, ListNode* next) : val(x), next(next) {}
 };
+struct TreeNode {
+	int val;
+	TreeNode* left;
+	TreeNode* right;
+	TreeNode() : val(0), left(nullptr), right(nullptr) {}
+	TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+	TreeNode(int x, TreeNode* left, TreeNode* right) : val(x), left(left), right(right) {}
+};
 class Solution 
 {
 	public:
@@ -2437,22 +2445,35 @@ class Solution
 		#pragma endregion
 		#pragma region 92.反转链表2
 		ListNode* reverseBetween(ListNode* head, int left, int right) {
-			if (!head || left == right) return head;
-			ListNode dummy(0);
-			dummy.next = head;
-			ListNode* prev = &dummy;
-			for (int i = 1; i < left; ++i) {
-				prev = prev->next;
+			ListNode* dammy = new ListNode(0, head);
+			ListNode* slow = dammy;
+			for (int i = 1; i < left; i++)
+			{
+				slow = slow->next;
 			}
-			ListNode* curr = prev->next;
-			ListNode* next = nullptr;
-			for (int i = left; i < right; ++i) {
-				next = curr->next;
-				curr->next = next->next;
-				next->next = prev->next;
-				prev->next = next;
+			ListNode* fast = slow->next;
+			for (int i = left; i < right; i++)
+			{
+				ListNode* temp = fast->next;
+				fast->next = temp->next;
+				temp->next = slow->next;
+				slow->next = temp;
 			}
-			return dummy.next;
+			return dammy->next;
+		}
+		#pragma endregion
+		#pragma region 94.二叉树的中序遍历
+		void inorder(TreeNode* root, vector<int>& ans)
+		{
+			if (root == NULL)return;
+			inorder(root->left, ans);
+			ans.push_back(root->val);
+			inorder(root->right, ans);
+		}
+		vector<int> inorderTraversal(TreeNode* root) {
+			vector<int> ans;
+			inorder(root, ans);
+			return ans;
 		}
 		#pragma endregion
 
