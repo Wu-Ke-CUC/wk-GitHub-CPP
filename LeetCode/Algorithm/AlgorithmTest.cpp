@@ -2476,6 +2476,63 @@ class Solution
 			return ans;
 		}
 		#pragma endregion
+		#pragma region 95.不同的二叉搜索树2
+		vector<TreeNode*> generateTrees(int start, int end)
+		{
+			if (start > end)return{};
+			vector<TreeNode*> allTrees;
+			for (int i = start; i <= end; i++)
+			{
+				vector<TreeNode*> leftTrees = generateTrees(start, i - 1);
+				vector<TreeNode*> rightTrees = generateTrees(i + 1, end);
+				for (auto left : leftTrees)
+				{
+					for (auto right : rightTrees)
+					{
+						TreeNode* tree = new TreeNode(i);
+						tree->left = left;
+						tree->right = right;
+						allTrees.push_back(tree);
+					}
+				}
+			}
+			return allTrees;
+		}
+		vector<TreeNode*> generateTrees(int n) {
+			if (n <= 0)return {};
+			return generateTrees(1, n);
+		}
+		#pragma endregion
+		#pragma region 96.不同的二叉搜索树
+		//int numTrees(int start, int end)
+		//{
+		//	if (start > end)return 1;
+		//	int ret = 0;
+		//	for (int i = start; i <= end; i++)
+		//	{
+		//		int numleft = numTrees(start, i - 1);
+		//		int numright = numTrees(i + 1, end);
+		//		ret += (numleft * numright);
+		//	}
+		//	return ret;
+		//}
+		//int numTrees(int n) {
+		//	if (n <= 0)return 0;
+		//	return numTrees(1, n);
+		//}
+		int numTrees(int n) {
+			vector<int> dp(n + 1);
+			dp[0] = 1, dp[1] = 1;
+			for (int i = 2; i < n + 1; i++)
+			{
+				for (int j = 0; j < i; j++)
+				{
+					dp[i] += dp[j] * dp[i - 1 - j];
+				}
+			}
+			return dp[n];
+		}
+		#pragma endregion
 
 };
 int main()
