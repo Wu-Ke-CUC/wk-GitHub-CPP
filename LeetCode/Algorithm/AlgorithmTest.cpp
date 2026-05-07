@@ -2533,6 +2533,40 @@ class Solution
 			return dp[n];
 		}
 		#pragma endregion
+		#pragma region 97.½»´í×Ö·û´®
+		bool isInterleave(string s1, string s2, string s3) {
+			int m = s1.length(), n = s2.length();
+			if (m + n != s3.length())return false;
+			vector<vector<bool>> dp(m + 1, vector<bool>(n + 1, false));
+			dp[0][0] = true;
+			for (int i = 0; i <= m; i++)
+			{
+				for (int j = 0; j <= n; j++)
+				{
+					if (i > 0 && s3[i + j - 1] == s1[i - 1] && dp[i - 1][j])
+					{
+						dp[i][j] = true;
+					}
+					if (j > 0 && s3[i + j - 1] == s2[j - 1] && dp[i][j - 1])
+					{
+						dp[i][j] = true;
+					}
+				}
+			}
+			return dp[m][n];
+		}
+		#pragma endregion
+		#pragma region 98.ÑéÖ¤¶þ²æËÑË÷Ê÷
+		bool isValidBST(TreeNode* root, long long min, long long max)
+		{
+			if (root == NULL) return true;
+			if (root->val <= min || root->val >= max)return false;
+			return isValidBST(root->left, min, root->val) && isValidBST(root->right, root->val, max);
+		}
+		bool isValidBST(TreeNode* root) {
+			return isValidBST(root, LLONG_MIN, LLONG_MAX);
+		}
+		#pragma endregion
 
 };
 int main()
