@@ -218,7 +218,7 @@ class Solution
 			return ret;
 		}
 		#pragma endregion
-		//#pragma region 7.整数反转
+		#pragma region 7.整数反转
 		//int reverse(int x) 
 		//{
 		//	int ret = 0;
@@ -2565,6 +2565,74 @@ class Solution
 		}
 		bool isValidBST(TreeNode* root) {
 			return isValidBST(root, LLONG_MIN, LLONG_MAX);
+		}
+		#pragma endregion
+		#pragma region 99.恢复二叉搜索树
+		//TreeNode* findMax(TreeNode* root) 
+		//{
+		//	if (root == NULL) return NULL;
+		//	TreeNode* leftMax = findMax(root->left);
+		//	TreeNode* rightMax = findMax(root->right);
+		//	TreeNode* maxNode = root;
+		//	if (leftMax && leftMax->val > maxNode->val) maxNode = leftMax;
+		//	if (rightMax && rightMax->val > maxNode->val) maxNode = rightMax;
+		//	return maxNode;
+		//}
+		//TreeNode* findMin(TreeNode* root)
+		//{
+		//	if (root == NULL)return NULL;
+		//	TreeNode* leftMin = findMin(root->left);
+		//	TreeNode* rightMin = findMin(root->right);
+		//	TreeNode* minNode = root;
+		//	if (leftMin && leftMin->val < minNode->val)minNode = leftMin;
+		//	if (rightMin && rightMin->val < minNode->val)minNode = rightMin;
+		//	return minNode;
+		//}
+		//void recoverTree(TreeNode* root) {
+		//	if (root == NULL)return;
+		//	TreeNode* leftMax = findMax(root->left);
+		//	TreeNode* rightMin = findMin(root->right);
+		//	if (leftMax && root->val < leftMax->val)
+		//	{
+		//		swap(root->val, leftMax->val);
+		//		return;
+		//	}
+		//	if (rightMin && root->val > rightMin->val)
+		//	{
+		//		swap(root->val, rightMin->val);
+		//		return;
+		//	}
+		//	recoverTree(root->left);
+		//	recoverTree(root->right);
+		//}
+		void recoverTree(TreeNode* root) {
+			TreeNode* first = nullptr, * second = nullptr, * prev = nullptr;
+			inorder(root, first, second, prev);
+			swap(first->val, second->val);
+		}
+		void inorder(TreeNode* node, TreeNode*& first, TreeNode*& second, TreeNode*& prev) {
+			if (!node) return;
+			inorder(node->left, first, second, prev);
+			if (prev && prev->val > node->val) {
+				if (!first) first = prev;
+				second = node;
+			}
+			prev = node;
+			inorder(node->right, first, second, prev);
+		}
+		#pragma endregion
+		#pragma region 100.相同的树
+		bool isSameTree(TreeNode* p, TreeNode* q) {
+			if (p == NULL && q == NULL)return true;
+			if (p != NULL && q != NULL)
+			{
+				if (p->val == q->val)
+				{
+					return isSameTree(p->left, q->left) && isSameTree(p->right, q->right);
+				}
+				return false;
+			}
+			return false;
 		}
 		#pragma endregion
 
