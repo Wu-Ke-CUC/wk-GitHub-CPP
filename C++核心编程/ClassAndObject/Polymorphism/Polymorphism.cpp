@@ -2,10 +2,16 @@
 #include<string>
 using namespace std;
 
-class Animal
+__interface IMove
+{
+	void Walk();
+};
+
+class Animal : public IMove
 {
 public:
 	virtual void Speak() = 0;	//纯虚函数
+	virtual void Walk() = 0;
 	//virtual ~Animal()			//虚析构
 	//{
 	//	cout << "Animal is deleted" << endl;
@@ -23,9 +29,13 @@ public:
 	{
 		this->name = new string(name);
 	}
-	virtual void Speak()
+	void Speak() override
 	{
 		cout << "Cat is speaking." << endl;
+	}
+	void Walk() override
+	{
+		cout << "Cat is moving" << endl;
 	}
 	~Cat()
 	{
@@ -72,6 +82,7 @@ int main()
 {
 	Animal* cat = new Cat("Kitte");
 	cat->Speak();
+	cat->Walk();
 	delete cat;
 
 	cout << sizeof(A) << endl << sizeof(B) << endl << sizeof(C);
