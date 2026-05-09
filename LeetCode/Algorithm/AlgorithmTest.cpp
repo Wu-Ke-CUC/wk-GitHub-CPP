@@ -4,6 +4,7 @@
 #include<unordered_map>
 #include<algorithm>
 #include<stack>
+#include<queue>
 #include<string>
 using namespace std;
 struct ListNode {
@@ -2633,6 +2634,51 @@ class Solution
 				return false;
 			}
 			return false;
+		}
+		#pragma endregion
+		#pragma region 101.对称二叉树
+		bool check(TreeNode* p, TreeNode* q) {
+			if (p == NULL && q == NULL)return true;
+			if (p == NULL || q == NULL)return false;
+			return (p->val == q->val) && check(p->left, q->right) && check(p->right, q->left);
+		}
+		bool isSymmetric(TreeNode* root) {
+			if (root == NULL)return true;
+			return check(root->left, root->right);
+		}
+		#pragma endregion
+		#pragma region 102.二叉树的层序遍历
+		vector<vector<int>> levelOrder(TreeNode* root) {
+			if (root == NULL)return{};
+			queue<TreeNode*> trees;
+			TreeNode* last = root;
+			TreeNode* nlast = NULL;
+			trees.push(root);
+			vector<vector<int>> ret;
+			vector<int> temp;
+			while (!trees.empty())
+			{
+				TreeNode* node = trees.front();
+				temp.push_back(node->val);
+				trees.pop();
+				if (node->left)
+				{
+					nlast = node->left;
+					trees.push(node->left);
+				}
+				if (node->right)
+				{
+					nlast = node->right;
+					trees.push(node->right);
+				}
+				if (node == last)
+				{
+					ret.push_back(temp);
+					temp.clear();
+					last = nlast;
+				}
+			}
+			return ret;
 		}
 		#pragma endregion
 
