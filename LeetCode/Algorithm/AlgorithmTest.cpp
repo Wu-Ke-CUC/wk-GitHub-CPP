@@ -2681,6 +2681,44 @@ class Solution
 			return ret;
 		}
 		#pragma endregion
+		#pragma region 103.二叉树的锯齿形层序遍历
+		vector<vector<int>> zigzagLevelOrder(TreeNode* root) {
+			if (root == NULL)return {};
+			queue<TreeNode*> nodes;
+			nodes.push(root);
+			vector<vector<int>> ret;
+			bool isOrderleft = true;
+			while (!nodes.empty()) 
+			{
+				deque<int> valList;
+				int size = nodes.size();
+				for (int i = 0; i < size; i++)
+				{
+					TreeNode* node = nodes.front();
+					if (isOrderleft)
+					{
+						valList.push_back(node->val);
+					}
+					else
+					{
+						valList.push_front(node->val);
+					}
+					nodes.pop();
+					if (node->left)nodes.push(node->left);
+					if (node->right)nodes.push(node->right);
+				}
+				ret.push_back(vector<int>{valList.begin(), valList.end()});
+				isOrderleft = !isOrderleft;
+			}
+			return ret;
+		}
+		#pragma endregion
+		#pragma region 104.二叉树的最大深度
+		int maxDepth(TreeNode* root) {
+			if (root == NULL)return 0;
+			else return (1 + max(maxDepth(root->left), maxDepth(root->right)));
+		}
+		#pragma endregion
 
 };
 int main()
