@@ -2719,6 +2719,32 @@ class Solution
 			else return (1 + max(maxDepth(root->left), maxDepth(root->right)));
 		}
 		#pragma endregion
+		#pragma region 105.从前序和中序遍历序列构造二叉树
+		unordered_map<int, int> index;
+		TreeNode* myBuildTree(vector<int>& preorder, vector<int>& inorder, int preorderLeft, int preorderRight, int inorderLeft, int inorderRight)
+		{
+			if (preorderLeft > preorderRight)
+			{
+				return NULL;
+			}
+			int preorderRoot = preorderLeft;
+			int inorderRoot = index[preorder[preorderRoot]];
+
+			TreeNode* root = new TreeNode(preorder[preorderRoot]);
+			int leftSize = inorderRoot - inorderLeft;
+			root->left = myBuildTree(preorder, inorder, preorderLeft + 1, preorderLeft + leftSize, inorderLeft, inorderRoot - 1);
+			root->right = myBuildTree(preorder, inorder, preorderLeft + leftSize + 1, preorderRight, inorderRoot + 1, inorderRight);
+			return root;
+		}
+		TreeNode* buildTree(vector<int>& preorder, vector<int>& inorder) {
+			int n = preorder.size();
+			for (int i = 0; i < n; i++)
+			{
+				index[inorder[i]] = i;
+			}
+			return myBuildTree(preorder, inorder, 0, n - 1, 0, n - 1);
+		}
+		#pragma endregion
 
 };
 int main()
