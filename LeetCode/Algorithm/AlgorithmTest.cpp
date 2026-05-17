@@ -2745,6 +2745,32 @@ class Solution
 			return myBuildTree(preorder, inorder, 0, n - 1, 0, n - 1);
 		}
 		#pragma endregion
+		#pragma region 106.从中序和后序遍历序列构造二叉树
+		unordered_map<int, int> index2;
+		TreeNode* myBuildTree2(vector<int>& posorder, vector<int>& inorder, int posorderLeft, int posorderRight, int inorderLeft, int inorderRight)
+		{
+			if (posorderLeft > posorderRight)
+			{
+				return NULL;
+			}
+			int posorderRoot = posorderRight;
+			int inorderRoot = index2[posorder[posorderRoot]];
+
+			TreeNode* root = new TreeNode(posorder[posorderRoot]);
+			int leftSize = inorderRoot - inorderLeft;
+			root->left = myBuildTree2(posorder, inorder, posorderLeft, posorderLeft + leftSize - 1, inorderLeft, inorderRoot - 1);
+			root->right = myBuildTree2(posorder, inorder, posorderLeft + leftSize, posorderRight - 1, inorderRoot + 1, inorderRight);
+			return root;
+		}
+		TreeNode* buildTree2(vector<int>& inorder, vector<int>& postorder) {
+			int n = postorder.size();
+			for (int i = 0; i < n; i++)
+			{
+				index2[inorder[i]] = i;
+			}
+			return myBuildTree2(postorder, inorder, 0, n - 1, 0, n - 1);
+		}
+		#pragma endregion
 
 };
 int main()
