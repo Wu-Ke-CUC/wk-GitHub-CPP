@@ -2771,6 +2771,61 @@ class Solution
 			return myBuildTree2(postorder, inorder, 0, n - 1, 0, n - 1);
 		}
 		#pragma endregion
+		#pragma region 107.二叉树的层序遍历2
+		vector<vector<int>> levelOrderBottom(TreeNode* root) {
+			if (root == NULL) return {};
+			queue<TreeNode*> nodes;
+			TreeNode* last = root;
+			TreeNode* nlast = NULL;
+			nodes.push(root);
+			stack<vector<int>> temp;
+			vector<vector<int>> ret;
+			vector<int> element;
+			while (!nodes.empty())
+			{
+				TreeNode* node = nodes.front();
+				element.push_back(node->val);
+				nodes.pop();
+				if (node->left)
+				{
+					nlast = node->left;
+					nodes.push(node->left);
+				}
+				if (node->right)
+				{
+					nlast = node->right;
+					nodes.push(node->right);
+				}
+				if (node == last)
+				{
+					temp.push(element);
+					element.clear();
+					last = nlast;
+				}
+			}
+			while (!temp.empty())
+			{
+				ret.push_back(temp.top());
+				temp.pop();
+			}
+			return ret;
+		}
+		#pragma endregion
+		#pragma region 108.将有序数组转换为二叉搜索树
+		TreeNode* myBuildTree3(vector<int>& nums, int left, int right)
+		{
+			if (left > right)return NULL;
+			int mid = (left + right) / 2;
+			TreeNode* root = new TreeNode(nums[mid]);
+			root->left = myBuildTree3(nums, left, mid - 1);
+			root->right = myBuildTree3(nums, mid + 1, right);
+			return root;
+		}
+		TreeNode* sortedArrayToBST(vector<int>& nums) {
+			int n = nums.size();
+			return myBuildTree3(nums, 0, n - 1);
+		}
+		#pragma endregion
 
 };
 int main()
