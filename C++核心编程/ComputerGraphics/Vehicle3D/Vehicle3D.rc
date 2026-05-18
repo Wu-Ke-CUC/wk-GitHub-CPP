@@ -1,0 +1,6 @@
+// Resource.h - 资源脚本
+#include "Include/resource.h"
+
+// Remove icon references to avoid file not found errors
+// IDI_VEHICLE3D ICON "Vehicle3D.ico"
+// IDI_SMALL ICON "Small.ico"
