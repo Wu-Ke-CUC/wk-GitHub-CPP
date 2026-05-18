@@ -3,7 +3,7 @@
 
 #include "Math3D.h"
 
-class Vehicle;
+class Target;
 class InputManager;
 
 class Camera
@@ -13,9 +13,9 @@ public:
     ~Camera();
 
     void Initialize();
-    void Update(Vehicle* vehicle, InputManager* input, float deltaTime);
+    void Update(Target* target, InputManager* input, float deltaTime);
     void ApplyProjection();
-    void ApplyView();
+    void ApplyView(Target* target);
 
     void SetAspectRatio(float ratio) { m_aspectRatio = ratio; }
     float GetAspectRatio() const { return m_aspectRatio; }
@@ -32,7 +32,7 @@ public:
     void ResetCamera();
 
 private:
-    void UpdateFollowMode(Vehicle* vehicle, InputManager* input, float deltaTime);
+    void UpdateFollowMode(Target* target, InputManager* input, float deltaTime);
 
     float m_fov;
     float m_aspectRatio;

@@ -21,7 +21,8 @@ bool g_hasFocus = true;
 
 // Scene components
 Scene* g_scene = nullptr;
-Vehicle* g_vehicle = nullptr;
+Target* g_targets[2];
+Target* g_currentTarget = nullptr;
 Camera* g_camera = nullptr;
 InputManager* g_input = nullptr;
 UI* g_ui = nullptr;
@@ -114,13 +115,16 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
     // Initialize scene
     g_renderer = new Renderer();
     g_scene = new Scene();
-    g_vehicle = new Vehicle();
+    g_targets[0] = new Vehicle();
+    g_targets[1] = new Aircraft();
+    g_currentTarget = g_targets[0];
     g_camera = new Camera();
     g_input = new InputManager();
     g_ui = new UI(g_hWnd);
 
     g_scene->Initialize();
-    g_vehicle->Initialize();
+    g_targets[0]->Initialize();
+    g_targets[1]->Initialize();
     g_camera->Initialize();
     g_input->Initialize(g_hWnd);
 
@@ -331,9 +335,26 @@ void ResizeScene(int width, int height)
 void UpdateFrame()
 {
     g_input->Update();
-    g_vehicle->Update(g_input, g_deltaTime);
-    g_camera->Update(g_vehicle, g_input, g_deltaTime);
-    g_ui->Update(g_vehicle, g_camera);
+    // 切换目标 (T键)
+    static bool lastTState = false;
+    bool currentT = (GetAsyncKeyState('T') & 0x8000) != 0;
+    if (currentT && !lastTState)
+    {
+        // 切换
+        if (g_currentTarget == g_targets[0])
+            g_currentTarget = g_targets[1];
+        else
+            g_currentTarget = g_targets[0];
+    }
+    lastTState = currentT;
+
+    // 只更新当前激活的目标的输入
+    if (g_currentTarget)
+        g_currentTarget->Update(g_input, g_deltaTime);
+
+    // 相机跟随当前目标
+    g_camera->Update(g_currentTarget, g_input, g_deltaTime);
+    g_ui->Update(g_currentTarget, g_camera);   // UI需要修改为接受Target*
 }
 
 // Render frame
@@ -347,7 +368,7 @@ void RenderFrame()
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    g_camera->ApplyView();
+    g_camera->ApplyView(g_currentTarget);
 
     GLfloat lightPos[] = { 50.0f, 100.0f, 50.0f, 0.0f };
     GLfloat lightAmbient[] = { 0.3f, 0.3f, 0.3f, 1.0f };
@@ -360,7 +381,9 @@ void RenderFrame()
     glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
 
     g_scene->Render();
-    g_vehicle->Render();
+    // 渲染所有目标（车辆和飞行器都可见）
+    for (int i = 0; i < 2; ++i)
+        g_targets[i]->Render();
     g_ui->Render(g_renderer);
 
     SwapBuffers(g_hDC);
@@ -371,7 +394,8 @@ void Cleanup()
 {
     delete g_renderer;
     delete g_scene;
-    delete g_vehicle;
+    delete g_targets[0];
+    delete g_targets[1];
     delete g_camera;
     delete g_input;
     delete g_ui;

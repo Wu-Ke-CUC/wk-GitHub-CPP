@@ -81,15 +81,16 @@ void UI::Resize(int width, int height)
     m_statusY = height - m_statusHeight - 38;  // bottom position with one-line gap
 }
 
-void UI::Update(Vehicle* vehicle, Camera* camera)
+void UI::Update(Target* target, Camera* camera)
 {
-    Vec3 pos = vehicle->GetPosition();
+    if (!target)return;
+    Vec3 pos = target->GetPosition();
     wchar_t buf[128];
 
     swprintf(buf, 128, L"%.1f, %.1f, %.1f", pos.x, pos.y, pos.z);
     m_vehiclePosition = buf;
 
-    swprintf(buf, 128, L"%.1f", vehicle->GetSpeed());
+    swprintf(buf, 128, L"%.1f", target->GetSpeed());
     m_vehicleSpeed = buf;
 
     float angleX = RAD_TO_DEG(camera->GetCameraAngleX());

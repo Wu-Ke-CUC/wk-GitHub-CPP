@@ -6,7 +6,7 @@
 #include <windows.h>
 
 class Renderer;
-class Vehicle;
+class Target;
 class Camera;
 
 struct UIButton
@@ -31,9 +31,8 @@ public:
     UI(HWND hWnd);
     ~UI();
 
-    void Update(Vehicle* vehicle, Camera* camera);
+    void Update(Target* target, Camera* camera);
     void Render(Renderer* renderer);
-    void RenderTextGDI();  // Deprecated, kept for compatibility
 
     void OnMouseDown(int x, int y);
     void OnMouseUp();

@@ -27,12 +27,12 @@ void Camera::Initialize()
     ResetCamera();
 }
 
-void Camera::Update(Vehicle* vehicle, InputManager* input, float deltaTime)
+void Camera::Update(Target* target, InputManager* input, float deltaTime)
 {
-    UpdateFollowMode(vehicle, input, deltaTime);
+    if(target) UpdateFollowMode(target, input, deltaTime);
 }
 
-void Camera::UpdateFollowMode(Vehicle* vehicle, InputManager* input, float deltaTime)
+void Camera::UpdateFollowMode(Target* target, InputManager* input, float deltaTime)
 {
     float cameraSpeed = 0.02f * deltaTime * 60.0f;
 
@@ -54,9 +54,6 @@ void Camera::UpdateFollowMode(Vehicle* vehicle, InputManager* input, float delta
         m_cameraHeight += cameraSpeed * 10;
     if (input->IsKeyPressed('Q'))
         m_cameraHeight -= cameraSpeed * 10;
-    // T键切换相机跟随目标
-    //if (input->IsKeyPressed('T'))
-    //    g_vehicle = NULL;
 }
 
 void Camera::ApplyProjection()
@@ -64,28 +61,27 @@ void Camera::ApplyProjection()
     gluPerspective(m_fov, m_aspectRatio, m_nearPlane, m_farPlane);
 }
 
-void Camera::ApplyView()
+void Camera::ApplyView(Target* target)
 {
-    if (g_vehicle)
+    if (target)
     {
-        Vehicle* vehicle = g_vehicle;
-        Vec3 vehiclePos = vehicle->GetPosition();
-        float vehicleRotation = vehicle->GetRotationY();
+        Vec3 targetPos = target->GetPosition();
+        float targetRotation = target->GetRotationY();
 
         //TODO
         // 使用 m_cameraAngleY 调整相机水平旋转
-        vehicleRotation -= m_cameraAngleY;
+        targetRotation -= m_cameraAngleY;
 
-        float dirX = cosf(vehicleRotation);
-        float dirZ = -sinf(vehicleRotation);
+        float dirX = cosf(targetRotation);
+        float dirZ = -sinf(targetRotation);
 
-        float camX = vehiclePos.x - dirX * m_cameraDistance;
-        float camZ = vehiclePos.z - dirZ * m_cameraDistance;
-        float camY = vehiclePos.y + m_cameraHeight;
+        float camX = targetPos.x - dirX * m_cameraDistance;
+        float camZ = targetPos.z - dirZ * m_cameraDistance;
+        float camY = targetPos.y + m_cameraHeight;
 
-        float lookX = vehiclePos.x ;//sinf(vehicleRotation) * 5.0f
-        float lookZ = vehiclePos.z ;//cosf(vehicleRotation) * 5.0f
-        float lookY = vehiclePos.y + 1.0f;
+        float lookX = targetPos.x ;//sinf(vehicleRotation) * 5.0f
+        float lookZ = targetPos.z ;//cosf(vehicleRotation) * 5.0f
+        float lookY = targetPos.y + 1.0f;
 
         gluLookAt(camX, camY, camZ, lookX, lookY, lookZ, 0, 1, 0);
     }
