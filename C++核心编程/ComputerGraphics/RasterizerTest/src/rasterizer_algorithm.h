@@ -14,3 +14,5 @@ FloatColor InterpolateColor(
     const FloatColor vertexColors[3],
     float x,
     float y);
+bool ArePointsCoincident(const IntPoint triangle[3]);
+bool ArePointsCollinear(const IntPoint triangle[3]);

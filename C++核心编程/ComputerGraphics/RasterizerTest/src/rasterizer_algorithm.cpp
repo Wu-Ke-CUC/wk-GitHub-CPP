@@ -105,3 +105,23 @@ FloatColor InterpolateColor(const IntPoint triangle[3], const FloatColor vertexC
 
     return MakeColor(r, g, b);
 }
+
+// 检查三角形是否有重合顶点（共点）
+bool ArePointsCoincident(const IntPoint triangle[3])
+{
+    if (triangle[0].x == triangle[1].x && triangle[0].y == triangle[1].y) return true;
+    if (triangle[0].x == triangle[2].x && triangle[0].y == triangle[2].y) return true;
+    if (triangle[1].x == triangle[2].x && triangle[1].y == triangle[2].y) return true;
+    return false;
+}
+
+// 检查三个不同点是否共线（叉积为0）
+bool ArePointsCollinear(const IntPoint triangle[3])
+{
+    // 如果存在重合点，则视为共点退化，这里假设调用前已排除共点情况
+    int Ax = triangle[0].x, Ay = triangle[0].y;
+    int Bx = triangle[1].x, By = triangle[1].y;
+    int Cx = triangle[2].x, Cy = triangle[2].y;
+    long long cross = (long long)(Bx - Ax) * (Cy - Ay) - (long long)(By - Ay) * (Cx - Ax);
+    return cross == 0;
+}

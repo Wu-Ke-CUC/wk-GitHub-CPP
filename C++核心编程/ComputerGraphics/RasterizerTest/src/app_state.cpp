@@ -3,6 +3,8 @@
 #include <cwchar>
 
 AppState g_app;
+extern bool ArePointsCoincident(const IntPoint triangle[3]);
+extern bool ArePointsCollinear(const IntPoint triangle[3]);
 
 int CellIndex(int x, int y)
 {
@@ -204,7 +206,18 @@ void StartScanning()
 
     if (g_app.triangleDegenerate)
     {
-        g_app.statusText = L"当前三角形退化（面积过小），请重置后重新选择顶点。";
+        if (ArePointsCoincident(g_app.triangle))
+        {
+            g_app.statusText = L"⚠️ 三角形退化：存在重合顶点（共点）。请点击“重置”后重新选择三个不同的格子。";
+        }
+        else if (ArePointsCollinear(g_app.triangle))
+        {
+            g_app.statusText = L"⚠️ 三角形退化：三个顶点共线。请点击“重置”后重新选择不共线的三个格子。";
+        }
+        else
+        {
+            g_app.statusText = L"⚠️ 当前三角形退化（面积过小），请点击“重置”后重新选择顶点。";
+        }
         UpdateStatus();
         return;
     }

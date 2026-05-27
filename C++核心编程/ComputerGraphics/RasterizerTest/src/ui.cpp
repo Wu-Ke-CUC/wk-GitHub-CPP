@@ -7,6 +7,9 @@
 
 #include <algorithm>
 
+extern bool ArePointsCoincident(const IntPoint triangle[3]);
+extern bool ArePointsCollinear(const IntPoint triangle[3]);
+
 namespace
 {
 
@@ -93,13 +96,14 @@ void AddVertexFromCanvas(int x, int y)
         return;
     }
 
-    g_app.vertices.push_back({x, y});
+    g_app.vertices.push_back({ x, y });
     UpdateVertexLabels();
 
     if (g_app.vertices.size() < 3)
     {
         wchar_t buffer[128];
-        std::swprintf(buffer, 128, L"已设置顶点 %d: (%d, %d)，继续点击下一个顶点。", static_cast<int>(g_app.vertices.size()), x, y);
+        std::swprintf(buffer, 128, L"已设置顶点 %d: (%d, %d)，继续点击下一个顶点。",
+            static_cast<int>(g_app.vertices.size()), x, y);
         g_app.statusText = buffer;
         g_app.scanState = ScanState::Idle;
     }
@@ -107,10 +111,29 @@ void AddVertexFromCanvas(int x, int y)
     {
         RebuildTriangleData();
         UpdateVertexLabels();
-        g_app.scanState = ScanState::Ready;
-        g_app.statusText =
-            L"三角形已创建。当前程序保留了顶点输入与轮廓显示；扫描转换部分留作练习，"
-            L"请继续完成 rasterizer_algorithm.cpp 中的 6 个核心函数。";
+
+        if (g_app.triangleDegenerate)
+        {
+            // 区分退化类型
+            if (ArePointsCoincident(g_app.triangle))
+            {
+                g_app.statusText = L"⚠️ 三角形退化：存在重合顶点（共点）。请点击“重置”重新选择三个不同的格子。";
+            }
+            else if (ArePointsCollinear(g_app.triangle))
+            {
+                g_app.statusText = L"⚠️ 三角形退化：三个顶点共线，面积为0。请点击“重置”重新选择不共线的三个格子。";
+            }
+            else
+            {
+                g_app.statusText = L"⚠️ 三角形退化（面积过小）。请点击“重置”重新选择顶点。";
+            }
+            g_app.scanState = ScanState::Idle;
+        }
+        else
+        {
+            g_app.scanState = ScanState::Ready;
+            g_app.statusText = L"✓ 非退化三角形已创建。点击“开始扫描”进行扫描转换。";
+        }
     }
 
     UpdateStatus();
