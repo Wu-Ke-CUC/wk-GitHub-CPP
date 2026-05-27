@@ -40,7 +40,7 @@ private:
     void CreateGround();
     void CreateTrees();
     void CreateMountains();
-    void CreatHouses();
+    void CreateHouses();
     void CreateSkybox();
     void CreateGrid();
 

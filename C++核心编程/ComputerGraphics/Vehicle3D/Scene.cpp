@@ -27,7 +27,7 @@ void Scene::Initialize()
     CreateGround();
     CreateTrees();
     CreateMountains();
-    CreatHouses();
+    CreateHouses();
     CreateGrid();
 }
 
@@ -78,7 +78,7 @@ void Scene::CreateMountains()
     }
 }
 
-void Scene::CreatHouses()
+void Scene::CreateHouses()
 {
     int houseCount = 3;
     m_houses.reserve(houseCount);
@@ -99,6 +99,10 @@ void Scene::CreatHouses()
 
         m_houses.push_back(house);
     }
+}
+
+void Scene::CreateSkybox()
+{
 }
 
 void Scene::CreateGrid()

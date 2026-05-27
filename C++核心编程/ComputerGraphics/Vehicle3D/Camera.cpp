@@ -72,15 +72,17 @@ void Camera::ApplyView(Target* target)
         // 使用 m_cameraAngleY 调整相机水平旋转
         targetRotation -= m_cameraAngleY;
 
+        //相对偏移
         float dirX = cosf(targetRotation);
         float dirZ = -sinf(targetRotation);
 
+        //世界坐标
         float camX = targetPos.x - dirX * m_cameraDistance;
         float camZ = targetPos.z - dirZ * m_cameraDistance;
         float camY = targetPos.y + m_cameraHeight;
 
-        float lookX = targetPos.x ;//sinf(vehicleRotation) * 5.0f
-        float lookZ = targetPos.z ;//cosf(vehicleRotation) * 5.0f
+        float lookX = targetPos.x ;
+        float lookZ = targetPos.z ;
         float lookY = targetPos.y + 1.0f;
 
         gluLookAt(camX, camY, camZ, lookX, lookY, lookZ, 0, 1, 0);
