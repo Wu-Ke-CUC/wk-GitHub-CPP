@@ -9,6 +9,9 @@
 
 #pragma comment(lib, "opengl32.lib")
 
+// 抗锯齿开关：1 = 开启4x SSAA，0 = 关闭（原始离散填充）
+#define ENABLE_ANTIALIASING 1
+
 namespace
 {
 
@@ -179,16 +182,83 @@ void DrawTestDots(int x, int y, const float edgeValues[3], bool inside)
 
 void DrawFinalRaster()
 {
+    // 背景色（用于采样点在三角形外的颜色）
+    const FloatColor bgColor = BackgroundColor();
+
+#if ENABLE_ANTIALIASING
+    // 4x SSAA：每个像素分割为 2x2 个子采样点
+    const int ssaaLevel = 2;                // 2x2 网格
+    const float subStep = 1.0f / ssaaLevel; // 子采样步长 0.5
+    const float subOffset = subStep * 0.5f; // 偏移量 0.25，使采样点位于子像素中心
+
     for (int y = 0; y < kGridRows; ++y)
     {
         for (int x = 0; x < kGridCols; ++x)
         {
-            if (!EvaluateInside(g_app.edges, static_cast<float>(x), static_cast<float>(y)))
+            FloatColor accumColor = { 0.0f, 0.0f, 0.0f };
+            int samplesInside = 0;
+
+            // 遍历子采样点
+            for (int sy = 0; sy < ssaaLevel; ++sy)
+            {
+                for (int sx = 0; sx < ssaaLevel; ++sx)
+                {
+                    // 子采样点的连续坐标（格子坐标范围，例如 x + 0.25, x + 0.75）
+                    float px = static_cast<float>(x) + subOffset + static_cast<float>(sx) * subStep;
+                    float py = static_cast<float>(y) + subOffset + static_cast<float>(sy) * subStep;
+
+                    if (EvaluateInside(g_app.edges, px, py))
+                    {
+                        FloatColor sampleColor = InterpolateColor(g_app.triangle, g_app.vertexColors, px, py);
+                        accumColor.r += sampleColor.r;
+                        accumColor.g += sampleColor.g;
+                        accumColor.b += sampleColor.b;
+                        ++samplesInside;
+                    }
+                    else
+                    {
+                        // 使用背景色
+                        accumColor.r += bgColor.r;
+                        accumColor.g += bgColor.g;
+                        accumColor.b += bgColor.b;
+                    }
+                }
+            }
+
+            const float invTotal = 1.0f / (ssaaLevel * ssaaLevel);
+            FloatColor finalColor = {
+                Clamp01(accumColor.r * invTotal),
+                Clamp01(accumColor.g * invTotal),
+                Clamp01(accumColor.b * invTotal)
+            };
+
+            // 只有当至少有一个采样点在三角形内时，才填充该格子（否则完全透明/背景）
+            if (samplesInside > 0)
+            {
+                DrawRectFilled(
+                    static_cast<float>(x * kCellSize + 1),
+                    static_cast<float>(y * kCellSize + 1),
+                    static_cast<float>(kCellSize - 2),
+                    static_cast<float>(kCellSize - 2),
+                    finalColor);
+            }
+        }
+    }
+#else
+    // 原始离散填充（无抗锯齿）
+    for (int y = 0; y < kGridRows; ++y)
+    {
+        for (int x = 0; x < kGridCols; ++x)
+        {
+            // 使用格子中心点（x+0.5, y+0.5）判断，与原逻辑一致
+            if (!EvaluateInside(g_app.edges, static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f))
             {
                 continue;
             }
 
-            const FloatColor color = InterpolateColor(g_app.triangle, g_app.vertexColors, static_cast<float>(x), static_cast<float>(y));
+            const FloatColor color = InterpolateColor(g_app.triangle, g_app.vertexColors,
+                static_cast<float>(x) + 0.5f,
+                static_cast<float>(y) + 0.5f);
             DrawRectFilled(
                 static_cast<float>(x * kCellSize + 1),
                 static_cast<float>(y * kCellSize + 1),
@@ -197,6 +267,7 @@ void DrawFinalRaster()
                 color);
         }
     }
+#endif
 }
 
 void DrawBoundingBox()
