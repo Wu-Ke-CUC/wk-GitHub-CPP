@@ -62,9 +62,9 @@ bool EvaluateInside(const EdgeEquation edges[3], float x, float y, float values[
     for (int i = 0; i < 3; ++i)
         values[i] = edges[i].Evaluate(x, y);
 
-    // 检查所有值非负 或 所有值非正
-    bool allNonNegative = (values[0] >= 0 && values[1] >= 0 && values[2] >= 0);
-    bool allNonPositive = (values[0] <= 0 && values[1] <= 0 && values[2] <= 0);
+    const float epsilon = 1e-6f;
+    bool allNonNegative = (values[0] >= -epsilon && values[1] >= -epsilon && values[2] >= -epsilon);
+    bool allNonPositive = (values[0] <= epsilon && values[1] <= epsilon && values[2] <= epsilon);
     return allNonNegative || allNonPositive;
 }
 

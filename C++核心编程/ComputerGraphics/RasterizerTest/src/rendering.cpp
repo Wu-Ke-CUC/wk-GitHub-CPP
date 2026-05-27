@@ -207,7 +207,7 @@ void DrawFinalRaster()
                     float px = static_cast<float>(x) + subOffset + static_cast<float>(sx) * subStep;
                     float py = static_cast<float>(y) + subOffset + static_cast<float>(sy) * subStep;
 
-                    if (EvaluateInside(g_app.edges, px, py))
+                    if (EvaluateInside(g_app.edges, px - 0.5f, py - 0.5f))
                     {
                         FloatColor sampleColor = InterpolateColor(g_app.triangle, g_app.vertexColors, px, py);
                         accumColor.r += sampleColor.r;
@@ -251,7 +251,7 @@ void DrawFinalRaster()
         for (int x = 0; x < kGridCols; ++x)
         {
             // 使用格子中心点（x+0.5, y+0.5）判断，与原逻辑一致
-            if (!EvaluateInside(g_app.edges, static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f))
+            if (!EvaluateInside(g_app.edges, static_cast<float>(x), static_cast<float>(y)))
             {
                 continue;
             }
