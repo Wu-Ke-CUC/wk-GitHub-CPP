@@ -1,5 +1,5 @@
 #include "app_state.h"
-
+#include "rasterizer_algorithm.h" 
 #include <cwchar>
 
 AppState g_app;
@@ -87,12 +87,18 @@ void RebuildTriangleData()
     }
 
     for (int i = 0; i < 3; ++i)
-    {
         g_app.triangle[i] = g_app.vertices[i];
-        g_app.edges[i] = {};
-    }
 
-    g_app.triangleReady = true;
+    // 构建边方程
+    BuildEdgeEquations(g_app.triangle, g_app.edges);
+
+    // 计算包围盒
+    g_app.boundingBox = CalculateBoundingBox(g_app.triangle);
+
+    // 检测退化
+    g_app.triangleDegenerate = IsDegenerateTriangle(g_app.triangle);
+
+    g_app.triangleReady = !g_app.triangleDegenerate;
 }
 
 void ResetScanResults()
@@ -131,10 +137,59 @@ void ResetAll()
 
 void AdvanceOneScanStep()
 {
-    KillTimer(g_app.mainWindow, kAnimationTimerId);
-    g_app.scanState = ScanState::Ready;
-    g_app.statusText = L"扫描动画尚未启用。请先完成 rasterizer_algorithm.cpp 中的核心函数实现。";
-    UpdateStatus();
+    // 仅在扫描状态下执行
+    if (g_app.scanState != ScanState::Scanning)
+        return;
+
+    // 检查是否已完成所有格子
+    if (g_app.currentScanY > g_app.boundingBox.maxY)
+    {
+        // 扫描完成
+        KillTimer(g_app.mainWindow, kAnimationTimerId);
+        g_app.scanState = ScanState::Done;
+        g_app.statusText = L"扫描转换完成！三角形内部区域已用插值颜色填充。";
+        UpdateStatus();
+        RequestCanvasRedraw();
+        return;
+    }
+
+    // 获取当前扫描的格子坐标
+    int x = g_app.currentScanX;
+    int y = g_app.currentScanY;
+    int index = CellIndex(x, y);
+
+    // 计算该格子是否在三角形内，并获取三个边方程的值
+    float edgeVals[3];
+    bool inside = EvaluateInside(g_app.edges, static_cast<float>(x), static_cast<float>(y), edgeVals);
+
+    // 存储扫描结果
+    g_app.scannedCells[index].visited = true;
+    g_app.scannedCells[index].inside = inside;
+    for (int i = 0; i < 3; ++i)
+        g_app.scannedCells[index].edgeValues[i] = edgeVals[i];
+
+    // 移动到下一个格子 (行优先)
+    g_app.currentScanX++;
+    if (g_app.currentScanX > g_app.boundingBox.maxX)
+    {
+        g_app.currentScanX = g_app.boundingBox.minX;
+        g_app.currentScanY++;
+    }
+
+    // 更新状态文本（每10步更新一次，避免过于频繁）
+    static int stepCount = 0;
+    if (++stepCount >= 10)
+    {
+        stepCount = 0;
+        wchar_t buffer[128];
+        std::swprintf(buffer, 128, L"扫描中: 处理格子 (%d, %d)，包围盒进度 %.1f%%",
+            x, y,
+            100.0f * (g_app.currentScanY - g_app.boundingBox.minY) / (g_app.boundingBox.maxY - g_app.boundingBox.minY + 1));
+        g_app.statusText = buffer;
+        UpdateStatus();
+    }
+
+    // 刷新画布显示当前格子的判定结果
     RequestCanvasRedraw();
 }
 
@@ -142,11 +197,35 @@ void StartScanning()
 {
     if (!g_app.triangleReady)
     {
-        g_app.statusText = L"请先在左侧网格中点击 3 个格子，形成三角形后再开始扫描。";
+        g_app.statusText = L"请先在左侧网格中点击 3 个格子，形成有效的非退化三角形后再开始扫描。";
         UpdateStatus();
         return;
     }
 
+    if (g_app.triangleDegenerate)
+    {
+        g_app.statusText = L"当前三角形退化（面积过小），请重置后重新选择顶点。";
+        UpdateStatus();
+        return;
+    }
+
+    // 重置扫描结果数组
+    ResetScanResults();
+
+    // 初始化扫描位置为包围盒左上角
+    g_app.currentScanX = g_app.boundingBox.minX;
+    g_app.currentScanY = g_app.boundingBox.minY;
+
+    // 重置闪烁状态
+    g_app.flashTick = 0;
+    g_app.flashAltColor = false;
+
+    // 进入闪烁包围盒阶段
+    g_app.scanState = ScanState::FlashingBoundingBox;
+    g_app.statusText = L"步骤 1-2: 高亮显示三角形包围盒，准备扫描转换...";
     UpdateStatus();
+
+    // 启动定时器用于闪烁动画 (每 150ms 触发一次)
+    SetTimer(g_app.mainWindow, kAnimationTimerId, 150, nullptr);
     RequestCanvasRedraw();
 }
