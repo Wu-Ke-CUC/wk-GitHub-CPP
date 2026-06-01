@@ -8,7 +8,6 @@
 #include <windowsx.h>
 #include <commctrl.h>
 #include <commdlg.h>
-
 #include <string>
 
 inline constexpr float kPi = 3.1415926535f;
@@ -19,33 +18,26 @@ inline constexpr wchar_t kSceneClassName[] = L"LightMaterialTextureSceneView";
 
 enum ControlId {
     IDC_SCENE = 100,
-    IDC_OBJECT_CUBE,
-    IDC_OBJECT_SPHERE,
-    IDC_OBJECT_TORUS,
+    IDC_TARGET_SELECT,
+    IDC_TARGET_LABEL,
     IDC_LIGHT1_INTENSITY,
     IDC_LIGHT1_INTENSITY_VALUE,
     IDC_LIGHT1_COLOR,
     IDC_LIGHT1_ENABLED,
     IDC_LIGHT1_POS_X,
-    IDC_LIGHT1_POS_X_VALUE,
     IDC_LIGHT1_POS_Y,
-    IDC_LIGHT1_POS_Y_VALUE,
     IDC_LIGHT1_POS_Z,
-    IDC_LIGHT1_POS_Z_VALUE,
+    IDC_LIGHT1_POS_LABEL,
     IDC_LIGHT2_INTENSITY,
     IDC_LIGHT2_INTENSITY_VALUE,
     IDC_LIGHT2_COLOR,
     IDC_LIGHT2_ENABLED,
     IDC_LIGHT2_POS_X,
-    IDC_LIGHT2_POS_X_VALUE,
     IDC_LIGHT2_POS_Y,
-    IDC_LIGHT2_POS_Y_VALUE,
     IDC_LIGHT2_POS_Z,
-    IDC_LIGHT2_POS_Z_VALUE,
+    IDC_LIGHT2_POS_LABEL,
     IDC_AMBIENT_INTENSITY,
     IDC_AMBIENT_INTENSITY_VALUE,
-    IDC_AMBIENT_COEFF,
-    IDC_AMBIENT_COEFF_VALUE,
     IDC_DIFFUSE_COEFF,
     IDC_DIFFUSE_COEFF_VALUE,
     IDC_SPECULAR_COEFF,
@@ -53,172 +45,108 @@ enum ControlId {
     IDC_SHININESS,
     IDC_SHININESS_VALUE,
     IDC_MATERIAL_COLOR,
-    IDC_AMBIENT_COLOR,
-    IDC_SPECULAR_COLOR,
-    IDC_EMISSIVE_COEFF,
-    IDC_EMISSIVE_COEFF_VALUE,
-    IDC_EMISSIVE_COLOR,
     IDC_OPACITY,
     IDC_OPACITY_VALUE,
-    IDC_NORMAL_STRENGTH,
-    IDC_NORMAL_STRENGTH_VALUE,
     IDC_DIFFUSE_MAP,
     IDC_DIFFUSE_MAP_COMBO,
     IDC_NORMAL_MAP,
     IDC_NORMAL_MAP_COMBO,
     IDC_TEXTURE_SCALE,
     IDC_TEXTURE_SCALE_VALUE,
-    IDC_TEXTURE_BLEND,
-    IDC_TEXTURE_BLEND_VALUE,
     IDC_RESET_BUTTON
 };
 
-enum class ObjectType {
-    Cube,
-    Sphere,
-    Torus
+// 增加编辑目标类型(3个模型+5面墙)
+enum class TargetType {
+    ModelCube = 0,
+    ModelSphere,
+    ModelTorus,
+    WallLeft,
+    WallRight,
+    WallBack,
+    WallTop,
+    WallBottom,
+    Count
 };
 
-struct Vec2 {
-    float x = 0.0f;
-    float y = 0.0f;
-};
-
-struct Vec3 {
-    float x = 0.0f;
-    float y = 0.0f;
-    float z = 0.0f;
-};
+struct Vec2 { float x = 0.0f; float y = 0.0f; };
+struct Vec3 { float x = 0.0f; float y = 0.0f; float z = 0.0f; };
 
 struct LightState {
     bool enabled = true;
     float intensity = 1.0f;
     COLORREF color = RGB(255, 255, 255);
-    Vec3 position {};
+    Vec3 position{};
 };
 
 struct MaterialState {
-    COLORREF color = RGB(79, 172, 254);
-    COLORREF ambientColor = RGB(48, 90, 140);
+    COLORREF color = RGB(200, 200, 200);
+    COLORREF ambientColor = RGB(100, 100, 100);
     COLORREF specularColor = RGB(255, 255, 255);
-    COLORREF emissiveColor = RGB(24, 42, 60);
+    COLORREF emissiveColor = RGB(0, 0, 0);
     float ambient = 0.2f;
     float diffuse = 0.8f;
     float specular = 0.5f;
     float shininess = 30.0f;
     float emissive = 0.0f;
     float opacity = 1.0f;
-    float normalStrength = 0.25f;
-    bool diffuseMapEnabled = true;
+    float normalStrength = 0.5f;
+    bool diffuseMapEnabled = false;
     bool normalMapEnabled = false;
     std::wstring diffuseMapFile = L"";
     std::wstring normalMapFile = L"";
     float textureScale = 1.0f;
-    float textureBlend = 1.0f;
+};
+
+struct WallState {
+    COLORREF color = RGB(220, 220, 220);
+    bool textureEnabled = false;
+    std::wstring textureFile = L"";
 };
 
 struct Controls {
     HWND scene = nullptr;
+    HWND targetLabel = nullptr;
+    HWND targetSelect = nullptr;
     HWND lightingGroup = nullptr;
     HWND materialGroup = nullptr;
     HWND textureGroup = nullptr;
-    HWND objectLabel = nullptr;
-    HWND objectCube = nullptr;
-    HWND objectSphere = nullptr;
-    HWND objectTorus = nullptr;
-    HWND light1IntensityLabel = nullptr;
-    HWND light1Intensity = nullptr;
-    HWND light1IntensityValue = nullptr;
-    HWND light1Color = nullptr;
-    HWND light1Enabled = nullptr;
-    HWND light1PosXLabel = nullptr;
-    HWND light1PosX = nullptr;
-    HWND light1PosXValue = nullptr;
-    HWND light1PosYLabel = nullptr;
-    HWND light1PosY = nullptr;
-    HWND light1PosYValue = nullptr;
-    HWND light1PosZLabel = nullptr;
-    HWND light1PosZ = nullptr;
-    HWND light1PosZValue = nullptr;
-    HWND light2IntensityLabel = nullptr;
-    HWND light2Intensity = nullptr;
-    HWND light2IntensityValue = nullptr;
-    HWND light2Color = nullptr;
-    HWND light2Enabled = nullptr;
-    HWND light2PosXLabel = nullptr;
-    HWND light2PosX = nullptr;
-    HWND light2PosXValue = nullptr;
-    HWND light2PosYLabel = nullptr;
-    HWND light2PosY = nullptr;
-    HWND light2PosYValue = nullptr;
-    HWND light2PosZLabel = nullptr;
-    HWND light2PosZ = nullptr;
-    HWND light2PosZValue = nullptr;
-    HWND ambientIntensityLabel = nullptr;
-    HWND ambientIntensity = nullptr;
-    HWND ambientIntensityValue = nullptr;
-    HWND ambientCoeffLabel = nullptr;
-    HWND ambientCoeff = nullptr;
-    HWND ambientCoeffValue = nullptr;
-    HWND diffuseCoeffLabel = nullptr;
-    HWND diffuseCoeff = nullptr;
-    HWND diffuseCoeffValue = nullptr;
-    HWND specularCoeffLabel = nullptr;
-    HWND specularCoeff = nullptr;
-    HWND specularCoeffValue = nullptr;
-    HWND shininessLabel = nullptr;
-    HWND shininess = nullptr;
-    HWND shininessValue = nullptr;
+    HWND light1IntensityLabel = nullptr, light1Intensity = nullptr, light1IntensityValue = nullptr;
+    HWND light1PosLabel = nullptr, light1PosX = nullptr, light1PosY = nullptr, light1PosZ = nullptr;
+    HWND light1Color = nullptr, light1Enabled = nullptr;
+    HWND light2IntensityLabel = nullptr, light2Intensity = nullptr, light2IntensityValue = nullptr;
+    HWND light2PosLabel = nullptr, light2PosX = nullptr, light2PosY = nullptr, light2PosZ = nullptr;
+    HWND light2Color = nullptr, light2Enabled = nullptr;
+    HWND ambientIntensityLabel = nullptr, ambientIntensity = nullptr, ambientIntensityValue = nullptr;
+    HWND diffuseCoeffLabel = nullptr, diffuseCoeff = nullptr, diffuseCoeffValue = nullptr;
+    HWND specularCoeffLabel = nullptr, specularCoeff = nullptr, specularCoeffValue = nullptr;
+    HWND shininessLabel = nullptr, shininess = nullptr, shininessValue = nullptr;
     HWND materialColor = nullptr;
-    HWND ambientColor = nullptr;
-    HWND specularColor = nullptr;
-    HWND emissiveCoeffLabel = nullptr;
-    HWND emissiveCoeff = nullptr;
-    HWND emissiveCoeffValue = nullptr;
-    HWND emissiveColor = nullptr;
-    HWND opacityLabel = nullptr;
-    HWND opacity = nullptr;
-    HWND opacityValue = nullptr;
-    HWND normalStrengthLabel = nullptr;
-    HWND normalStrength = nullptr;
-    HWND normalStrengthValue = nullptr;
-    HWND diffuseMap = nullptr;
-    HWND diffuseMapCombo = nullptr;
-    HWND normalMap = nullptr;
-    HWND normalMapCombo = nullptr;
-    HWND textureScaleLabel = nullptr;
-    HWND textureScale = nullptr;
-    HWND textureScaleValue = nullptr;
-    HWND textureBlendLabel = nullptr;
-    HWND textureBlend = nullptr;
-    HWND textureBlendValue = nullptr;
+    HWND opacityLabel = nullptr, opacity = nullptr, opacityValue = nullptr;
+    HWND diffuseMap = nullptr, diffuseMapCombo = nullptr;
+    HWND normalMap = nullptr, normalMapCombo = nullptr;
+    HWND textureScaleLabel = nullptr, textureScale = nullptr, textureScaleValue = nullptr;
     HWND resetButton = nullptr;
-};
-
-struct RenderHit {
-    bool hit = false;
-    float distance = 0.0f;
-    Vec3 position {};
-    Vec3 localPosition {};
-    Vec3 normal {};
-    int materialId = 0;
 };
 
 struct AppState {
     HWND mainWindow = nullptr;
-    ObjectType activeObject = ObjectType::Cube;
+    TargetType activeTarget = TargetType::ModelCube;
     LightState light1;
     LightState light2;
     float ambientLightIntensity = 0.2f;
-    MaterialState material;
+
+    MaterialState objectMaterials[3];
+    WallState walls[5];
+
     Controls controls;
     float autoRotation = 0.0f;
-    float userYaw = 0.4f;
-    float userPitch = -0.2f;
-    float cameraDistance = 4.7f;
+    float userYaw = 0.0f;
+    float userPitch = 0.1f;
+    float cameraDistance = 9.0f;
     bool dragging = false;
-    POINT lastMouse {};
-    COLORREF customColors[16] {};
+    POINT lastMouse{};
+    COLORREF customColors[16]{};
     HFONT sectionFont = nullptr;
 };
 
