@@ -255,7 +255,12 @@ namespace {
     void DrawCornellBox() {
         const float s = 5.0f; // 盒子半尺寸
         struct Vertex { Vec3 p, n; float u, v; };
-        auto drawQuad = [](const Vertex v[4], const WallState& state) {
+
+        // 增强版 drawQuad：绘制墙面的同时，向模板缓冲写入对应的墙面 Stencil ID
+        auto drawQuad = [](const Vertex v[4], const WallState& state, int stencilId) {
+            glStencilFunc(GL_ALWAYS, stencilId, 0xFF);
+            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
             ApplyWallMaterial(state);
             glBegin(GL_QUADS);
             for (int i = 0; i < 4; ++i) {
@@ -265,21 +270,51 @@ namespace {
             }
             glEnd();
             };
-        // 左墙 (+X 朝内)
+
+        // 左墙 (+X 朝内) -> 标记为 ID 1
         Vertex left[4] = { {{-s,-s,s},{1,0,0},0,0}, {{-s,-s,-s},{1,0,0},1,0}, {{-s,s,-s},{1,0,0},1,1}, {{-s,s,s},{1,0,0},0,1} };
-        drawQuad(left, g_app.walls[0]);
-        // 右墙 (-X 朝内)
+        drawQuad(left, g_app.walls[0], 1);
+
+        // 右墙 (-X 朝内) -> 标记为 ID 2
         Vertex right[4] = { {{s,-s,-s},{-1,0,0},0,0}, {{s,-s,s},{-1,0,0},1,0}, {{s,s,s},{-1,0,0},1,1}, {{s,s,-s},{-1,0,0},0,1} };
-        drawQuad(right, g_app.walls[1]);
-        // 后墙 (+Z 朝内)
+        drawQuad(right, g_app.walls[1], 2);
+
+        // 后墙 (+Z 朝内) -> 标记为 ID 3
         Vertex back[4] = { {{-s,-s,-s},{0,0,1},0,0}, {{s,-s,-s},{0,0,1},1,0}, {{s,s,-s},{0,0,1},1,1}, {{-s,s,-s},{0,0,1},0,1} };
-        drawQuad(back, g_app.walls[2]);
-        // 顶墙 (-Y 朝内)
+        drawQuad(back, g_app.walls[2], 3);
+
+        // 顶墙 (-Y 朝内) -> 标记为 ID 4
         Vertex top[4] = { {{-s,s,-s},{0,-1,0},0,1}, {{s,s,-s},{0,-1,0},1,1}, {{s,s,s},{0,-1,0},1,0}, {{-s,s,s},{0,-1,0},0,0} };
-        drawQuad(top, g_app.walls[3]);
-        // 底墙 (+Y 朝内)
+        drawQuad(top, g_app.walls[3], 4);
+
+        // 底墙/地板 (+Y 朝内) -> 标记为 ID 5
         Vertex bottom[4] = { {{-s,-s,s},{0,1,0},0,0}, {{s,-s,s},{0,1,0},1,0}, {{s,-s,-s},{0,1,0},1,1}, {{-s,-s,-s},{0,1,0},0,1} };
-        drawQuad(bottom, g_app.walls[4]);
+        drawQuad(bottom, g_app.walls[4], 5);
+    }
+    // 构建平面阴影矩阵 (Blinn's Shadow Matrix)
+    // ground: 平面方程 Ax + By + Cz + D = 0 的四个系数
+    // light: 光源位置 [X, Y, Z, W]
+    void BuildShadowMatrix(const float ground[4], const float light[4], float shadowMat[16]) {
+        float dot = ground[0] * light[0] + ground[1] * light[1] + ground[2] * light[2] + ground[3] * light[3];
+        shadowMat[0] = dot - light[0] * ground[0];
+        shadowMat[1] = 0.0f - light[1] * ground[0];
+        shadowMat[2] = 0.0f - light[2] * ground[0];
+        shadowMat[3] = 0.0f - light[3] * ground[0];
+
+        shadowMat[4] = 0.0f - light[0] * ground[1];
+        shadowMat[5] = dot - light[1] * ground[1];
+        shadowMat[6] = 0.0f - light[2] * ground[1];
+        shadowMat[7] = 0.0f - light[3] * ground[1];
+
+        shadowMat[8] = 0.0f - light[0] * ground[2];
+        shadowMat[9] = 0.0f - light[1] * ground[2];
+        shadowMat[10] = dot - light[2] * ground[2];
+        shadowMat[11] = 0.0f - light[3] * ground[2];
+
+        shadowMat[12] = 0.0f - light[0] * ground[3];
+        shadowMat[13] = 0.0f - light[1] * ground[3];
+        shadowMat[14] = 0.0f - light[2] * ground[3];
+        shadowMat[15] = dot - light[3] * ground[3];
     }
 
     void DrawCube(const MaterialState& mat) {
@@ -384,7 +419,114 @@ namespace {
         glDisable(GL_BLEND);
         glDepthMask(GL_TRUE);
     }
+    // 为指定光源在各个墙面上渲染平面阴影
+    void DrawPlanarShadowsForLight(const LightState& light) {
+        // 【动态控制】：如果光源未开启，或者强度小于等于 0，则直接不绘制任何阴影
+        if (!light.enabled || light.intensity <= 0.0f) return;
 
+        // 点光源位置 W = 1.0f
+        float lpos[4] = { light.position.x, light.position.y, light.position.z, 1.0f };
+
+        // 对应 Cornell Box 的各面墙壁方程 (半尺寸 s = 5.0f)
+        struct ShadowPlane {
+            int stencilId;
+            float eq[4];
+        };
+        ShadowPlane planes[] = {
+            { 1, { 1.0f,  0.0f,  0.0f, 5.0f} }, // 左墙: x = -5  ->  1x + 5 = 0
+            { 2, {-1.0f,  0.0f,  0.0f, 5.0f} }, // 右墙: x = 5   -> -1x + 5 = 0
+            { 3, { 0.0f,  0.0f,  1.0f, 5.0f} }, // 后墙: z = -5  ->  1z + 5 = 0
+            { 5, { 0.0f,  1.0f,  0.0f, 5.0f} }  // 地板: y = -5  ->  1y + 5 = 0
+        };
+
+        // 关闭光照和纹理，开启混合用来渲染半透明黑色阴影
+        glDisable(GL_LIGHTING);
+        glDisable(GL_TEXTURE_2D);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        // 锁死深度缓冲区更新，防止阴影几何体自身或相互之间破坏深度测试
+        glDepthMask(GL_FALSE);
+        glDepthFunc(GL_LEQUAL);
+
+        // 开启多边形偏移（Polygon Offset），完美解决阴影与墙面共面导致的闪烁（Z-Fighting）
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(-1.0f, -1.0f);
+
+        float shadowMat[16];
+        float rotY = g_app.autoRotation * 180.0f / kPi;
+
+        // 【优化 1】：使阴影浓度（Alpha）随灯光强度（intensity）动态线性变化
+        // 乘以 0.4f 映射系数，并设置 0.75f 的最高上限防止影子完全死黑。
+        float shadowAlpha = Clamp(light.intensity * 0.4f, 0.0f, 0.75f);
+
+        for (const auto& p : planes) {
+            // 计算当前光源打在特定墙面上的压扁投影矩阵
+            BuildShadowMatrix(p.eq, lpos, shadowMat);
+
+            // =================================================================
+            // 阶段 1：同一光源下的阴影区域模板标记（闭合颜色缓冲区，只去重不着色）
+            // =================================================================
+            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE); // 禁止写入颜色
+
+            // 只有属于当前墙面 ID 的像素才进行测试
+            glStencilFunc(GL_EQUAL, p.stencilId, 0xFF);
+            // 核心魔法：通过测试后，将模板值加 1（变为 stencilId + 1）
+            // 如果立方体和球体的影子在此处重叠，后续几何体进来时由于值已变成 stencilId + 1 导致测试失败，
+            // 从而实现单光源下多物体阴影的完美去重，不会产生二次重叠产生的黑色色块。
+            glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+
+            glPushMatrix();
+            glMultMatrixf(shadowMat);
+
+            // 绘制三大物体的阴影几何体以更新模板缓冲
+            glPushMatrix(); glTranslatef(-2.5f, -2.0f, 1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
+            DrawCube(g_app.objectMaterials[0]); glPopMatrix();
+
+            glPushMatrix(); glTranslatef(0.0f, -1.8f, -1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
+            DrawSphere(g_app.objectMaterials[1]); glPopMatrix();
+
+            glPushMatrix(); glTranslatef(2.5f, -2.58f, 1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
+            DrawTorus(g_app.objectMaterials[2]); glPopMatrix();
+
+            glPopMatrix();
+
+            // =================================================================
+            // 阶段 2：真正绘制当前光源的阴影颜色，并完美还原模板缓冲值
+            // =================================================================
+            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // 重新打开颜色写入
+
+            // 只有刚才被成功标记为阴影（值为 stencilId + 1）的有效像素才执行着色
+            glStencilFunc(GL_EQUAL, p.stencilId + 1, 0xFF);
+            // 关键还原：着色完成之后将模板缓冲值减 1（干净地还原回墙面原本的 stencilId）
+            // 这步操作清空了现场，使得下一个光源（如 light2）进来时能基于相同的原墙面 ID 独立计算！
+            glStencilOp(GL_KEEP, GL_KEEP, GL_DECR);
+
+            glPushMatrix();
+            glMultMatrixf(shadowMat);
+
+            // 使用受到灯光强度联动控制的半透明黑色
+            glColor4f(0.0f, 0.0f, 0.0f, shadowAlpha);
+
+            // 再次绘制三大物体，将计算好的单层阴影颜色输出到屏幕
+            glPushMatrix(); glTranslatef(-2.5f, -2.0f, 1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
+            DrawCube(g_app.objectMaterials[0]); glPopMatrix();
+
+            glPushMatrix(); glTranslatef(0.0f, -1.8f, -1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
+            DrawSphere(g_app.objectMaterials[1]); glPopMatrix();
+
+            glPushMatrix(); glTranslatef(2.5f, -2.58f, 1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
+            DrawTorus(g_app.objectMaterials[2]); glPopMatrix();
+
+            glPopMatrix();
+        }
+
+        // 恢复原有渲染状态，避免污染正常的场景绘制
+        glDisable(GL_POLYGON_OFFSET_FILL);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+        glEnable(GL_LIGHTING);
+    }
 } // namespace
 
 void PaintScene(HWND hwnd, HDC) {
@@ -395,19 +537,30 @@ void PaintScene(HWND hwnd, HDC) {
 
     SetProjection(width, height);
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // 【修改】：开启模板测试，并清除 颜色、深度 以及 模板 缓冲区
+    glEnable(GL_STENCIL_TEST);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glLoadIdentity();
 
     // 应用摄像机变换
     glTranslatef(0.0f, 0.0f, -g_app.cameraDistance);
     glRotatef(g_app.userPitch * 180.0f / kPi, 1.0f, 0.0f, 0.0f);
-    glRotatef(g_app.userYaw * 180.0f / kPi, 0.0f, 1.0f, 0.0f);
+    glRotatef(g_app.userYaw * 180.0f / kPi, 0.0f, 1.0f, 0.0f); // 沿用上一轮修改的房间旋转
 
     // 在固定世界坐标下设置光源位置
     ConfigureLights();
 
+    // 1. 绘制 Cornell 盒子（在此期间墙体 ID 写入了 Stencil 缓冲）
     DrawCornellBox();
+
+    // 2. 正常绘制 3D 核心物体
     DrawSceneObjects();
+
+    // 3. 【新增】：为开启的光源分别绘制投影阴影
+    DrawPlanarShadowsForLight(g_app.light1);
+    DrawPlanarShadowsForLight(g_app.light2);
+
+    glDisable(GL_STENCIL_TEST);
 
     SwapBuffers(g_gl.dc);
 }
