@@ -355,11 +355,11 @@ namespace {
     }
 
     void DrawSceneObjects() {
-        float rotY = (g_app.autoRotation + g_app.userYaw) * 180.0f / kPi;
+        float rotY = (g_app.autoRotation) * 180.0f / kPi;
 
         // 模型 0: Cube (左侧放置)
         glPushMatrix();
-        glTranslatef(-2.5f, -4.0f, 1.0f);
+        glTranslatef(-2.5f, -2.0f, 1.0f);
         glRotatef(rotY, 0.0f, 1.0f, 0.0f);
         ApplyMaterial(g_app.objectMaterials[0], true);
         DrawCube(g_app.objectMaterials[0]);
@@ -367,7 +367,7 @@ namespace {
 
         // 模型 1: Sphere (居中靠后放置)
         glPushMatrix();
-        glTranslatef(0.0f, -3.8f, -1.0f);
+        glTranslatef(0.0f, -1.8f, -1.0f);
         glRotatef(rotY, 0.0f, 1.0f, 0.0f);
         ApplyMaterial(g_app.objectMaterials[1], true);
         DrawSphere(g_app.objectMaterials[1]);
@@ -375,9 +375,8 @@ namespace {
 
         // 模型 2: Torus (右侧放置)
         glPushMatrix();
-        glTranslatef(2.5f, -4.58f, 1.0f); // 底部紧贴盒底 (-5 + 0.42 minorRadius)
+        glTranslatef(2.5f, -2.58f, 1.0f); // 底部紧贴盒底 (-5 + 0.42 minorRadius)
         glRotatef(rotY, 0.0f, 1.0f, 0.0f);
-        glRotatef(90.0f, 1.0f, 0.0f, 0.0f); // 平躺放平
         ApplyMaterial(g_app.objectMaterials[2], true);
         DrawTorus(g_app.objectMaterials[2]);
         glPopMatrix();
@@ -402,6 +401,7 @@ void PaintScene(HWND hwnd, HDC) {
     // 应用摄像机变换
     glTranslatef(0.0f, 0.0f, -g_app.cameraDistance);
     glRotatef(g_app.userPitch * 180.0f / kPi, 1.0f, 0.0f, 0.0f);
+    glRotatef(g_app.userYaw * 180.0f / kPi, 0.0f, 1.0f, 0.0f);
 
     // 在固定世界坐标下设置光源位置
     ConfigureLights();

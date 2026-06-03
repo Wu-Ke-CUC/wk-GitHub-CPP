@@ -127,7 +127,7 @@ void LoadDefaults() {
     // 0: Cube (粗糙漫反射 - 石膏/纸张)
     g_app.objectMaterials[0].color = RGB(220, 220, 220);
     g_app.objectMaterials[0].ambient = 0.2f;
-    g_app.objectMaterials[0].diffuse = 0.9f;
+    g_app.objectMaterials[0].diffuse = 0.8f;
     g_app.objectMaterials[0].specular = 0.05f;
     g_app.objectMaterials[0].shininess = 5.0f;
     g_app.objectMaterials[0].diffuseMapEnabled = true;
@@ -146,13 +146,17 @@ void LoadDefaults() {
     g_app.objectMaterials[1].diffuseMapEnabled = false;
     g_app.objectMaterials[1].normalMapEnabled = false;
 
-    // 2: Torus (高反光 - 金属)
-    g_app.objectMaterials[2].color = RGB(255, 200, 50);
-    g_app.objectMaterials[2].specularColor = RGB(255, 240, 150);
-    g_app.objectMaterials[2].ambient = 0.3f;
-    g_app.objectMaterials[2].diffuse = 0.2f;
-    g_app.objectMaterials[2].specular = 1.0f;
-    g_app.objectMaterials[2].shininess = 120.0f;
+    // 2: Torus (次表面材质 - 翡翠/玉石)
+    g_app.objectMaterials[2].color = RGB(110, 190, 140);         // 基础漫反射颜色：浅翠绿色
+    g_app.objectMaterials[2].ambientColor = RGB(40, 100, 70);    // 环境光颜色：较深的绿色，模拟内部折射的底色
+    g_app.objectMaterials[2].specularColor = RGB(220, 255, 230); // 高光颜色：带一点微绿的亮白色，体现抛光质感
+    g_app.objectMaterials[2].emissiveColor = RGB(20, 50, 30);    // 自发光颜色：用于伪造次表面通透感
+    g_app.objectMaterials[2].ambient = 0.8f;                     // 环境光系数：调高以模拟光线在内部的漫反射
+    g_app.objectMaterials[2].diffuse = 0.7f;                     // 漫反射系数
+    g_app.objectMaterials[2].specular = 0.9f;                    // 高光系数：玉石表面通常抛光很好，反光强烈
+    g_app.objectMaterials[2].shininess = 80.0f;                  // 光泽度：产生锐利且集中的高光斑
+    g_app.objectMaterials[2].emissive = 0.4f;                    // 开启一定程度的自发光来提供内部的“莹润感”
+    g_app.objectMaterials[2].opacity = 0.85f;                    // 透明度：<0.99 触发渲染器中的 GL_BLEND，透出背景
     g_app.objectMaterials[2].diffuseMapEnabled = false;
     g_app.objectMaterials[2].normalMapEnabled = false;
 
@@ -524,7 +528,7 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
     case WM_SIZE: LayoutControls(hwnd); return 0;
     case WM_TIMER:
         if (wParam == kTimerId) {
-            g_app.autoRotation += 0.0f;
+            g_app.autoRotation += 0.01f;
             if (g_app.autoRotation > 2.0f * kPi) g_app.autoRotation -= 2.0f * kPi;
             InvalidateRect(g_app.controls.scene, nullptr, FALSE);
         }
