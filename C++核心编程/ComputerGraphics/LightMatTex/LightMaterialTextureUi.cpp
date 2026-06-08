@@ -147,16 +147,16 @@ void LoadDefaults() {
     g_app.objectMaterials[1].normalMapEnabled = false;
 
     // 2: Torus (次表面材质 - 翡翠/玉石)
-    g_app.objectMaterials[2].color = RGB(110, 190, 140);         // 基础漫反射颜色：浅翠绿色
-    g_app.objectMaterials[2].ambientColor = RGB(40, 100, 70);    // 环境光颜色：较深的绿色，模拟内部折射的底色
-    g_app.objectMaterials[2].specularColor = RGB(220, 255, 230); // 高光颜色：带一点微绿的亮白色，体现抛光质感
-    g_app.objectMaterials[2].emissiveColor = RGB(20, 50, 30);    // 自发光颜色：用于伪造次表面通透感
-    g_app.objectMaterials[2].ambient = 0.8f;                     // 环境光系数：调高以模拟光线在内部的漫反射
-    g_app.objectMaterials[2].diffuse = 0.7f;                     // 漫反射系数
-    g_app.objectMaterials[2].specular = 0.9f;                    // 高光系数：玉石表面通常抛光很好，反光强烈
-    g_app.objectMaterials[2].shininess = 80.0f;                  // 光泽度：产生锐利且集中的高光斑
-    g_app.objectMaterials[2].emissive = 0.4f;                    // 开启一定程度的自发光来提供内部的“莹润感”
-    g_app.objectMaterials[2].opacity = 0.85f;                    // 透明度：<0.99 触发渲染器中的 GL_BLEND，透出背景
+    g_app.objectMaterials[2].color = RGB(105, 195, 125);         // 基础漫反射颜色：浅翠绿色
+    g_app.objectMaterials[2].ambientColor = RGB(30, 85, 55);     // 环境光颜色：较深的绿色，模拟内部折射的底色
+    g_app.objectMaterials[2].specularColor = RGB(235, 255, 240); // 高光颜色：带一点微绿的亮白色，体现抛光质感
+    g_app.objectMaterials[2].emissiveColor = RGB(45, 110, 70);   // 自发光颜色：用于伪造次表面通透感
+    g_app.objectMaterials[2].ambient = 0.75f;                     // 环境光系数：调高以模拟光线在内部的漫反射
+    g_app.objectMaterials[2].diffuse = 0.55f;                     // 漫反射系数
+    g_app.objectMaterials[2].specular = 0.65f;                    // 高光系数：玉石表面通常抛光很好，反光强烈
+    g_app.objectMaterials[2].shininess = 45.0f;                  // 光泽度：产生锐利且集中的高光斑
+    g_app.objectMaterials[2].emissive = 0.55f;                    // 开启一定程度的自发光来提供内部的“莹润感”
+    g_app.objectMaterials[2].opacity = 1.0f;                    // 透明度：<0.99 触发渲染器中的 GL_BLEND，透出背景
     g_app.objectMaterials[2].diffuseMapEnabled = false;
     g_app.objectMaterials[2].normalMapEnabled = false;
 
@@ -187,6 +187,7 @@ void LoadDefaults() {
 
 void SyncControlsFromState() {
     SendMessageW(g_app.controls.targetSelect, CB_SETCURSEL, static_cast<int>(g_app.activeTarget), 0);
+    SendMessageW(g_app.controls.MainLight, CB_SETCURSEL, g_app.mainLightIndex, 0);
 
     SetSliderRange(g_app.controls.light1Intensity, 0, 200, static_cast<int>(g_app.light1.intensity * 100.0f));
     SetSliderRange(g_app.controls.light1PosX, -100, 100, static_cast<int>(g_app.light1.position.x * 10.0f));
@@ -359,7 +360,7 @@ void LayoutControls(HWND hwnd) {
     MoveWindow(g_app.controls.targetSelect, controlsX + 90, y, controlWidth - 90, 200, TRUE);
     y += 34;
 
-    const int lightingHeight = 310;
+    const int lightingHeight = 350;
     MoveWindow(g_app.controls.lightingGroup, controlsX, y, controlWidth, lightingHeight, TRUE);
     int groupY = y + 20;
     moveLine(g_app.controls.light1IntensityLabel, g_app.controls.light1IntensityValue, g_app.controls.light1Intensity, groupY);
@@ -377,6 +378,8 @@ void LayoutControls(HWND hwnd) {
     MoveWindow(g_app.controls.light2Color, innerX, groupY, 140, 24, TRUE);
     MoveWindow(g_app.controls.light2Enabled, innerX + innerWidth - 140, groupY, 140, 24, TRUE);
     groupY += 34;
+    MoveWindow(g_app.controls.MainLight, innerX, groupY, innerWidth, 200, TRUE);
+    groupY += 30;
     y += lightingHeight + 10;
 
     const int materialHeight = 270;
@@ -437,6 +440,10 @@ void CreateUi(HWND hwnd) {
     g_app.controls.light2PosZ = CreateTrackBar(hwnd, IDC_LIGHT2_POS_Z);
     g_app.controls.light2Color = CreateButton(hwnd, L"Light 2 Color", IDC_LIGHT2_COLOR);
     g_app.controls.light2Enabled = CreateButton(hwnd, L"Enable Light 2", IDC_LIGHT2_ENABLED, WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX);
+
+    g_app.controls.MainLight = CreateWindowExW(0, WC_COMBOBOXW, L"", CBS_DROPDOWNLIST | WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP, 0, 0, 100, 200, hwnd, (HMENU)IDC_MainLight, GetModuleHandleW(nullptr), nullptr);
+    SendMessageW(g_app.controls.MainLight, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"Main Light: Light 1"));
+    SendMessageW(g_app.controls.MainLight, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"Main Light: Light 2"));
 
     g_app.controls.ambientIntensityLabel = CreateLabel(hwnd, L"Ambient Intensity");
     g_app.controls.ambientIntensityValue = CreateLabel(hwnd, L"0.2", IDC_AMBIENT_INTENSITY_VALUE);
@@ -564,6 +571,13 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
                         InvalidateRect(g_app.controls.scene, nullptr, FALSE);
                         UpdateWindow(g_app.controls.scene);
                     }
+                }
+            }
+            else if (id == IDC_MainLight) {
+                if (idx != CB_ERR && idx >= 0 && idx <= 1) {
+                    g_app.mainLightIndex = idx;
+                    InvalidateRect(g_app.controls.scene, nullptr, FALSE);
+                    UpdateWindow(g_app.controls.scene);
                 }
             }
             return 0;

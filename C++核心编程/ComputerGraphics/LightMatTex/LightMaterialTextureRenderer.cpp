@@ -1,4 +1,4 @@
-#include "LightMaterialTexture.h"
+﻿#include "LightMaterialTexture.h"
 #include "LightMaterialTextureMath.h"
 
 #include <gl/GL.h>
@@ -394,7 +394,7 @@ namespace {
 
         // 模型 0: Cube (左侧放置)
         glPushMatrix();
-        glTranslatef(-2.5f, -2.0f, 1.0f);
+        glTranslatef(-2.5f, -4.0f, 1.0f);
         glRotatef(rotY, 0.0f, 1.0f, 0.0f);
         ApplyMaterial(g_app.objectMaterials[0], true);
         DrawCube(g_app.objectMaterials[0]);
@@ -402,7 +402,7 @@ namespace {
 
         // 模型 1: Sphere (居中靠后放置)
         glPushMatrix();
-        glTranslatef(0.0f, -1.8f, -1.0f);
+        glTranslatef(0.0f, -3.8f, -1.0f);
         glRotatef(rotY, 0.0f, 1.0f, 0.0f);
         ApplyMaterial(g_app.objectMaterials[1], true);
         DrawSphere(g_app.objectMaterials[1]);
@@ -410,7 +410,7 @@ namespace {
 
         // 模型 2: Torus (右侧放置)
         glPushMatrix();
-        glTranslatef(2.5f, -2.58f, 1.0f); // 底部紧贴盒底 (-5 + 0.42 minorRadius)
+        glTranslatef(2.5f, -4.58f, 1.0f); // 底部紧贴盒底 (-5 + 0.42 minorRadius)
         glRotatef(rotY, 0.0f, 1.0f, 0.0f);
         ApplyMaterial(g_app.objectMaterials[2], true);
         DrawTorus(g_app.objectMaterials[2]);
@@ -436,6 +436,7 @@ namespace {
             { 1, { 1.0f,  0.0f,  0.0f, 5.0f} }, // 左墙: x = -5  ->  1x + 5 = 0
             { 2, {-1.0f,  0.0f,  0.0f, 5.0f} }, // 右墙: x = 5   -> -1x + 5 = 0
             { 3, { 0.0f,  0.0f,  1.0f, 5.0f} }, // 后墙: z = -5  ->  1z + 5 = 0
+            { 4, { 0.0f, -1.0f,  0.0f, 5.0f} }, // 顶墙: y = 5   -> -1y + 5 = 0
             { 5, { 0.0f,  1.0f,  0.0f, 5.0f} }  // 地板: y = -5  ->  1y + 5 = 0
         };
 
@@ -480,13 +481,13 @@ namespace {
             glMultMatrixf(shadowMat);
 
             // 绘制三大物体的阴影几何体以更新模板缓冲
-            glPushMatrix(); glTranslatef(-2.5f, -2.0f, 1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
+            glPushMatrix(); glTranslatef(-2.5f, -4.0f, 1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
             DrawCube(g_app.objectMaterials[0]); glPopMatrix();
 
-            glPushMatrix(); glTranslatef(0.0f, -1.8f, -1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
+            glPushMatrix(); glTranslatef(0.0f, -3.8f, -1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
             DrawSphere(g_app.objectMaterials[1]); glPopMatrix();
 
-            glPushMatrix(); glTranslatef(2.5f, -2.58f, 1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
+            glPushMatrix(); glTranslatef(2.5f, -4.58f, 1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
             DrawTorus(g_app.objectMaterials[2]); glPopMatrix();
 
             glPopMatrix();
@@ -509,13 +510,13 @@ namespace {
             glColor4f(0.0f, 0.0f, 0.0f, shadowAlpha);
 
             // 再次绘制三大物体，将计算好的单层阴影颜色输出到屏幕
-            glPushMatrix(); glTranslatef(-2.5f, -2.0f, 1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
+            glPushMatrix(); glTranslatef(-2.5f, -4.0f, 1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
             DrawCube(g_app.objectMaterials[0]); glPopMatrix();
 
-            glPushMatrix(); glTranslatef(0.0f, -1.8f, -1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
+            glPushMatrix(); glTranslatef(0.0f, -3.8f, -1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
             DrawSphere(g_app.objectMaterials[1]); glPopMatrix();
 
-            glPushMatrix(); glTranslatef(2.5f, -2.58f, 1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
+            glPushMatrix(); glTranslatef(2.5f, -4.58f, 1.0f); glRotatef(rotY, 0.0f, 1.0f, 0.0f);
             DrawTorus(g_app.objectMaterials[2]); glPopMatrix();
 
             glPopMatrix();
@@ -537,7 +538,7 @@ void PaintScene(HWND hwnd, HDC) {
 
     SetProjection(width, height);
 
-    // 【修改】：开启模板测试，并清除 颜色、深度 以及 模板 缓冲区
+    // 开启模板测试，并清除 颜色、深度 以及 模板 缓冲区
     glEnable(GL_STENCIL_TEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glLoadIdentity();
@@ -556,9 +557,11 @@ void PaintScene(HWND hwnd, HDC) {
     // 2. 正常绘制 3D 核心物体
     DrawSceneObjects();
 
-    // 3. 【新增】：为开启的光源分别绘制投影阴影
-    DrawPlanarShadowsForLight(g_app.light1);
-    DrawPlanarShadowsForLight(g_app.light2);
+    // 3. 为开启的光源分别绘制投影阴影
+    if (g_app.mainLightIndex == 0)
+        DrawPlanarShadowsForLight(g_app.light1);
+    else
+        DrawPlanarShadowsForLight(g_app.light2);
 
     glDisable(GL_STENCIL_TEST);
 

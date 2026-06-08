@@ -36,6 +36,7 @@ enum ControlId {
     IDC_LIGHT2_POS_Y,
     IDC_LIGHT2_POS_Z,
     IDC_LIGHT2_POS_LABEL,
+    IDC_MainLight,
     IDC_AMBIENT_INTENSITY,
     IDC_AMBIENT_INTENSITY_VALUE,
     IDC_DIFFUSE_COEFF,
@@ -117,6 +118,7 @@ struct Controls {
     HWND light2IntensityLabel = nullptr, light2Intensity = nullptr, light2IntensityValue = nullptr;
     HWND light2PosLabel = nullptr, light2PosX = nullptr, light2PosY = nullptr, light2PosZ = nullptr;
     HWND light2Color = nullptr, light2Enabled = nullptr;
+    HWND MainLight = nullptr;
     HWND ambientIntensityLabel = nullptr, ambientIntensity = nullptr, ambientIntensityValue = nullptr;
     HWND diffuseCoeffLabel = nullptr, diffuseCoeff = nullptr, diffuseCoeffValue = nullptr;
     HWND specularCoeffLabel = nullptr, specularCoeff = nullptr, specularCoeffValue = nullptr;
@@ -134,6 +136,7 @@ struct AppState {
     TargetType activeTarget = TargetType::ModelCube;
     LightState light1;
     LightState light2;
+    int mainLightIndex = 0;  // 0 = Light 1, 1 = Light 2
     float ambientLightIntensity = 0.2f;
 
     MaterialState objectMaterials[3];
