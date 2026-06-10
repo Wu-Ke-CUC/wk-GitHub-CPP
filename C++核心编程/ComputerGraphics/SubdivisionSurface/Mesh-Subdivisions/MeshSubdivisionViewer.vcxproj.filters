@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{B28507A7-3227-4C4B-BF4B-07A6C2FD66CC}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{39AA49A6-A2A5-4365-A31B-6F1A174423F8}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Header Files\subdivisions">
+      <UniqueIdentifier>{E6239CEC-AD9C-41C3-AEB8-F40B00AF0B73}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\subdivisions">
+      <UniqueIdentifier>{FB896A08-974B-42B4-A0EF-692490B5195D}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="head\obj_mesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="head\subdivision.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="head\subdivisions\catmull.h">
+      <Filter>Header Files\subdivisions</Filter>
+    </ClInclude>
+    <ClInclude Include="head\subdivisions\doosabin.h">
+      <Filter>Header Files\subdivisions</Filter>
+    </ClInclude>
+    <ClInclude Include="head\subdivisions\doosabin2.h">
+      <Filter>Header Files\subdivisions</Filter>
+    </ClInclude>
+    <ClInclude Include="head\subdivisions\loop.h">
+      <Filter>Header Files\subdivisions</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\obj_mesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\subdivisions\catmull.cpp">
+      <Filter>Source Files\subdivisions</Filter>
+    </ClCompile>
+    <ClCompile Include="src\subdivisions\doosabin.cpp">
+      <Filter>Source Files\subdivisions</Filter>
+    </ClCompile>
+    <ClCompile Include="src\subdivisions\doosabin2.cpp">
+      <Filter>Source Files\subdivisions</Filter>
+    </ClCompile>
+    <ClCompile Include="src\subdivisions\loop.cpp">
+      <Filter>Source Files\subdivisions</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
