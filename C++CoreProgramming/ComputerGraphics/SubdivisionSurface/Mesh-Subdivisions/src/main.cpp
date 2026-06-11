@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <gdiplus.h>
+#include <commdlg.h> // 【新增】用于调用 GetOpenFileName 文件选择对话框
 
 #include <algorithm>
 #include <cmath>
@@ -77,6 +78,11 @@ struct AppState {
     float yaw = 0.65f;
     float pitch = -0.35f;
     float zoom = 1.0f;
+
+    // --- 新增：FPS 统计变量 ---
+    DWORD lastFpsTime = 0;
+    int frameCount = 0;
+    float currentFps = 0.0f;
 };
 
 struct ProjectedVertex {
@@ -896,11 +902,13 @@ void drawPanel(Gdiplus::Graphics& graphics, const RECT& clientRect, const AppSta
     std::snprintf(
         statsBuffer,
         sizeof(statsBuffer),
-        "Algorithm: %s\nMesh: %s\nVertices: %u\nFaces: %u",
+        "Algorithm: %s\nMesh: %s\nVertices: %u\nFaces: %u\nFPS: %.1f", // <--- 新增 \nFPS: %.1f
         currentScene(state).algorithmName.c_str(),
         currentScene(state).meshName.c_str(),
         static_cast<unsigned int>(mesh.mesh.positions.size()),
-        static_cast<unsigned int>(mesh.mesh.faces.size()));
+        static_cast<unsigned int>(mesh.mesh.faces.size()),
+        state.currentFps); // <--- 传入当前帧率
+
     std::wstring statsText = toWide(statsBuffer);
     Gdiplus::RectF statsRectF = toRectF(state.statsRect);
     statsRectF.X += 14.0f;
@@ -913,6 +921,7 @@ void drawPanel(Gdiplus::Graphics& graphics, const RECT& clientRect, const AppSta
     const std::wstring shortcutTitle = L"Hotkeys";
     graphics.DrawString(shortcutTitle.c_str(), -1, &sectionFont, Gdiplus::PointF(static_cast<Gdiplus::REAL>(state.shortcutsRect.left + 14), static_cast<Gdiplus::REAL>(state.shortcutsRect.top + 12)), &textBrush);
     const std::wstring shortcutText =
+        L"M: import external OBJ\n"
         L"L/C/D: switch method\n"
         L"Left/Right: switch mesh\n"
         L"Up/Down or 0-3: switch level\n"
@@ -1034,6 +1043,60 @@ void cleanupResources(AppState& state)
     }
 }
 
+// 【新增函数】用于弹出文件选择框并导入自定义 OBJ 文件
+void importExternalObj(AppState& state) {
+    char filename[MAX_PATH] = {};
+    OPENFILENAMEA ofn = {};
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = state.window;
+    ofn.lpstrFilter = "OBJ Files (*.obj)\0*.obj\0All Files (*.*)\0*.*\0";
+    ofn.lpstrFile = filename;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+    ofn.lpstrDefExt = "obj";
+
+    if (GetOpenFileNameA(&ofn)) {
+        obj_mesh customMesh;
+        if (loadSceneMesh(filename, customMesh, "Import OBJ")) {
+            std::string displayName = "Custom: ";
+
+            // 提取不带路径和后缀的文件名用于显示
+            std::string pathStr = filename;
+            size_t pos = pathStr.find_last_of("\\/");
+            if (pos != std::string::npos) pathStr = pathStr.substr(pos + 1);
+            size_t extPos = pathStr.find_last_of(".");
+            if (extPos != std::string::npos) pathStr = pathStr.substr(0, extPos);
+            displayName += pathStr;
+
+            // 为了避免 UI 高度溢出，检测是否已经有自定义模型（索引 2）
+            // 如果存在，则替换；如果不存在，则在现有组后面追加。
+            if (state.sceneGroups[0].size() > 2) {
+                // 替换已有的自定义网格
+                state.scenes[state.sceneGroups[0][2]] = Scene{ "Loop", displayName, buildLevels(customMesh, 0) };
+                state.scenes[state.sceneGroups[1][2]] = Scene{ "Catmull-Clark", displayName, buildLevels(customMesh, 1) };
+                state.scenes[state.sceneGroups[2][2]] = Scene{ "Doo-Sabin", displayName, buildLevels(customMesh, 2) };
+            }
+            else {
+                // 作为新的自定义网格追加
+                state.sceneGroups[0].push_back(static_cast<int>(state.scenes.size()));
+                state.scenes.push_back(Scene{ "Loop", displayName, buildLevels(customMesh, 0) });
+
+                state.sceneGroups[1].push_back(static_cast<int>(state.scenes.size()));
+                state.scenes.push_back(Scene{ "Catmull-Clark", displayName, buildLevels(customMesh, 1) });
+
+                state.sceneGroups[2].push_back(static_cast<int>(state.scenes.size()));
+                state.scenes.push_back(Scene{ "Doo-Sabin", displayName, buildLevels(customMesh, 2) });
+            }
+
+            // 切换到刚导入的模型 (变体索引设为 2)
+            state.currentVariant = 2;
+            state.currentLevel = 0;
+            refreshUi(state);
+            InvalidateRect(state.window, nullptr, FALSE);
+        }
+    }
+}
+
 LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 {
     AppState& state = appState();
@@ -1091,6 +1154,10 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
     }
     case WM_KEYDOWN:
         switch (wParam) {
+        case 'M': // 【新增】按下 O 键触发导入
+            state.openDropdown = 0;
+            importExternalObj(state);
+            return 0;
         case VK_LEFT:
             state.openDropdown = 0;
             cycleMeshVariant(state, -1);
@@ -1137,6 +1204,17 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
         return 0;
     case WM_PAINT:
     {
+        // --- 新增：计算 FPS ---
+        DWORD currentTime = GetTickCount();
+        if (state.lastFpsTime == 0) state.lastFpsTime = currentTime;
+        state.frameCount++;
+        if (currentTime - state.lastFpsTime >= 1000) {
+            // 每隔 1000 毫秒（1秒）更新一次显示的帧率
+            state.currentFps = static_cast<float>(state.frameCount) * 1000.0f / (currentTime - state.lastFpsTime);
+            state.frameCount = 0;
+            state.lastFpsTime = currentTime;
+        }
+
         PAINTSTRUCT paint = {};
         HDC windowDc = BeginPaint(window, &paint);
 
