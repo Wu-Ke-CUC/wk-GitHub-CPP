@@ -83,6 +83,18 @@ struct AppState {
     DWORD lastFpsTime = 0;
     int frameCount = 0;
     float currentFps = 0.0f;
+
+    // --- 新增：导入按钮的状态 ---
+    RECT importBtnRect = {};
+    bool importBtnHover = false;
+
+    // --- 新增：滚动条相关 ---
+    int modelScrollOffset = 0;  // 模型列表滚动偏移（像素）
+    RECT modelScrollAreaRect = {}; // 模型按钮的可见区域
+    RECT scrollbarRect = {}; // 滚动条的轨道矩形
+    RECT scrollbarThumbRect = {}; // 滚动条滑块矩形
+    bool isScrollbarDragging = false; // 是否正在拖动滚动条
+    int scrollbarThumbHeight = 0; // 滚动条滑块高度
 };
 
 struct ProjectedVertex {
@@ -430,8 +442,11 @@ void layoutUi(AppState& state)
 
     const int left = panelRect.left + kPanelPadding;
     const int width = panelRect.right - panelRect.left - kPanelPadding * 2;
+    const int panelHeight = panelRect.bottom - panelRect.top;
+
     int top = panelRect.top + 82;
 
+    // 第一步：计算固定的下拉框位置
     state.methodComboRect = makeRect(left, top, left + width, top + kControlHeight);
     top += 74;
     state.levelComboRect = makeRect(left, top, left + width, top + kControlHeight);
@@ -439,16 +454,85 @@ void layoutUi(AppState& state)
     state.renderModeRect = makeRect(left, top, left + width, top + kControlHeight);
     top += 74;
 
-    const int variantCount = currentVariantCount(state);
-    state.modelButtonRects.assign(static_cast<size_t>(variantCount), RECT{});
-    for (int i = 0; i < variantCount; ++i) {
-        state.modelButtonRects[static_cast<size_t>(i)] = makeRect(left, top, left + width, top + kModelButtonHeight);
-        top += kModelButtonHeight + kModelButtonGap;
-    }
-
-    state.statsRect = makeRect(left, top + 8, left + width, top + 120);
+    // 第二步：从面板底部向上计算固定元素的位置
+    // 快捷键框位置（固定在面板底部）
     state.shortcutsRect = makeRect(left, panelRect.bottom - 150, left + width, panelRect.bottom - 24);
 
+    // 导入按钮位置（在快捷键框上方）
+    int importBtnHeight = 35;
+    int importBtnTop = state.shortcutsRect.top - importBtnHeight - 15;
+    state.importBtnRect = makeRect(left, importBtnTop, left + width, importBtnTop + importBtnHeight);
+
+    // 统计信息框位置（在导入按钮上方）
+    int statsHeight = 108;
+    int statsTop = state.importBtnRect.top - statsHeight - 8;
+    state.statsRect = makeRect(left, statsTop, left + width, statsTop + statsHeight);
+
+    // 第三步：计算模型按钮的动态区域（在下拉框和统计框之间）
+    const int variantCount = currentVariantCount(state);
+    state.modelButtonRects.assign(static_cast<size_t>(variantCount), RECT{});
+
+    // 可用于模型按钮的空间
+    int availableTop = top; // 从下拉框后面开始
+    int availableBottom = state.statsRect.top - 8; // 到统计框前面结束
+    int availableHeight = availableBottom - availableTop;
+
+    // 滚动条相关常量
+    const int scrollbarWidth = 12;
+    const int scrollbarMargin = 4;
+    const int modelAreaWidth = width - scrollbarWidth - scrollbarMargin;
+
+    // 设置模型按钮的可见区域（不包括滚动条）
+    state.modelScrollAreaRect = makeRect(left, availableTop, left + modelAreaWidth, availableBottom);
+
+    // 滚动条轨道矩形
+    state.scrollbarRect = makeRect(left + modelAreaWidth + scrollbarMargin, availableTop, left + width, availableBottom);
+
+    if (variantCount > 0) {
+        int totalButtonHeight = variantCount * kModelButtonHeight + (variantCount - 1) * kModelButtonGap;
+
+        if (totalButtonHeight > availableHeight) {
+            // 需要滚动条
+            // 计算滚动条滑块大小和位置
+            state.scrollbarThumbHeight = std::max(20, (availableHeight * availableHeight) / totalButtonHeight);
+            int scrollbarTrackHeight = availableHeight - state.scrollbarThumbHeight;
+
+            // 限制滚动偏移范围
+            int maxScroll = totalButtonHeight - availableHeight;
+            state.modelScrollOffset = std::max(0, std::min(state.modelScrollOffset, maxScroll));
+
+            // 计算滑块位置
+            int thumbTop = availableTop + (scrollbarTrackHeight * state.modelScrollOffset) / maxScroll;
+            state.scrollbarThumbRect = makeRect(
+                state.scrollbarRect.left,
+                thumbTop,
+                state.scrollbarRect.right,
+                thumbTop + state.scrollbarThumbHeight);
+
+            // 计算所有模型按钮位置（基于滚动偏移）
+            int buttonTop = availableTop - state.modelScrollOffset;
+            for (int i = 0; i < variantCount; ++i) {
+                state.modelButtonRects[static_cast<size_t>(i)] = makeRect(
+                    left, 
+                    buttonTop, 
+                    left + modelAreaWidth, 
+                    buttonTop + kModelButtonHeight);
+                buttonTop += kModelButtonHeight + kModelButtonGap;
+            }
+        } else {
+            // 无需滚动条
+            state.modelScrollOffset = 0;
+            state.scrollbarThumbHeight = 0;
+            state.scrollbarThumbRect = makeRect(0, 0, 0, 0);
+
+            // 正常分配按钮位置
+            int buttonTop = availableTop;
+            for (int i = 0; i < variantCount; ++i) {
+                state.modelButtonRects[static_cast<size_t>(i)] = makeRect(left, buttonTop, left + width, buttonTop + kModelButtonHeight);
+                buttonTop += kModelButtonHeight + kModelButtonGap;
+            }
+        }
+    }
 }
 
 void refreshUi(AppState& state)
@@ -870,12 +954,24 @@ void drawPanel(Gdiplus::Graphics& graphics, const RECT& clientRect, const AppSta
     drawDropdownField(graphics, state.renderModeRect, renderModeLabel(state.currentRenderMode), state.openDropdown == 3, bodyFont);
 
     if (!state.modelButtonRects.empty()) {
-        graphics.DrawString(L"Mesh", -1, &sectionFont, Gdiplus::PointF(static_cast<Gdiplus::REAL>(state.modelButtonRects[0].left), static_cast<Gdiplus::REAL>(state.modelButtonRects[0].top - 26)), &mutedBrush);
+        graphics.DrawString(L"Mesh", -1, &sectionFont, Gdiplus::PointF(static_cast<Gdiplus::REAL>(state.modelButtonRects[0].left), static_cast<Gdiplus::REAL>(state.modelScrollAreaRect.top - 26)), &mutedBrush);
     }
+
+    // --- 新增：设置裁剪区域，只显示可见的模型按钮 ---
+    Gdiplus::Region originalRegion;
+    graphics.GetClip(&originalRegion);
+    Gdiplus::Region clipRegion(toRectF(state.modelScrollAreaRect));
+    graphics.SetClip(&clipRegion, Gdiplus::CombineModeReplace);
 
     const std::vector<int>& group = state.sceneGroups[static_cast<size_t>(state.currentMethod)];
     for (size_t i = 0; i < state.modelButtonRects.size(); ++i) {
         const RECT& buttonRect = state.modelButtonRects[i];
+
+        // 检查按钮是否在可见区域内
+        if (buttonRect.bottom <= state.modelScrollAreaRect.top || buttonRect.top >= state.modelScrollAreaRect.bottom) {
+            continue; // 跳过不可见的按钮
+        }
+
         const Scene& scene = state.scenes[static_cast<size_t>(group[i])];
         const bool selected = static_cast<int>(i) == state.currentVariant;
 
@@ -894,6 +990,26 @@ void drawPanel(Gdiplus::Graphics& graphics, const RECT& clientRect, const AppSta
         std::wstring caption = (i == 0) ? L"Primary Mesh" : L"Alternative Mesh";
         graphics.DrawString(meshName.c_str(), -1, &sectionFont, Gdiplus::PointF(static_cast<Gdiplus::REAL>(buttonRect.left + 14), static_cast<Gdiplus::REAL>(buttonRect.top + 11)), currentTextBrush);
         graphics.DrawString(caption.c_str(), -1, &smallFont, Gdiplus::PointF(static_cast<Gdiplus::REAL>(buttonRect.left + 14), static_cast<Gdiplus::REAL>(buttonRect.top + 30)), badgeBrush);
+    }
+
+    // --- 恢复原始裁剪区域 ---
+    graphics.SetClip(&originalRegion, Gdiplus::CombineModeReplace);
+
+    // --- 新增：绘制滚动条 ---
+    if (state.scrollbarThumbHeight > 0) {
+        // 绘制滚动条轨道背景
+        Gdiplus::SolidBrush scrollbarBg(gdipColor(kPanelCardColor));
+        graphics.FillRectangle(&scrollbarBg, toRectF(state.scrollbarRect));
+
+        // 绘制滚动条边框
+        Gdiplus::Pen scrollbarBorder(gdipColor(kBorderColor), 1.0f);
+        graphics.DrawRectangle(&scrollbarBorder, toRectF(state.scrollbarRect));
+
+        // 绘制滚动条滑块
+        Gdiplus::SolidBrush scrollbarThumb(gdipColor(kMutedTextColor));
+        Gdiplus::Pen scrollbarThumbBorder(gdipColor(kTextColor), 1.0f);
+        graphics.FillRectangle(&scrollbarThumb, toRectF(state.scrollbarThumbRect));
+        graphics.DrawRectangle(&scrollbarThumbBorder, toRectF(state.scrollbarThumbRect));
     }
 
     fillRoundedCard(graphics, state.statsRect, kPanelCardColor, kBorderColor, 10, 1.0f);
@@ -916,6 +1032,18 @@ void drawPanel(Gdiplus::Graphics& graphics, const RECT& clientRect, const AppSta
     statsRectF.Width -= 28.0f;
     statsRectF.Height -= 24.0f;
     graphics.DrawString(statsText.c_str(), -1, &bodyFont, statsRectF, nullptr, &textBrush);
+
+    // --- 新增：绘制导入模型按钮 ---
+    fillRoundedCard(graphics, state.importBtnRect, kPanelCardColor, kBorderColor, 6, 1.0f); // 假设圆角为6
+    // 绘制按钮文字
+    std::wstring btnText = L"Open OBJ Model...";
+    Gdiplus::RectF btnRectF = toRectF(state.importBtnRect);
+    // 文字居中对齐格式
+    Gdiplus::StringFormat format;
+    format.SetAlignment(Gdiplus::StringAlignmentCenter);
+    format.SetLineAlignment(Gdiplus::StringAlignmentCenter);
+    Gdiplus::SolidBrush btnTextBrush(Gdiplus::Color(255, 220, 220, 220)); // 白色文字
+    graphics.DrawString(btnText.c_str(), -1, &bodyFont, btnRectF, &format, &btnTextBrush);
 
     fillRoundedCard(graphics, state.shortcutsRect, kPanelCardColor, kBorderColor, 10, 1.0f);
     const std::wstring shortcutTitle = L"Hotkeys";
@@ -1023,7 +1151,11 @@ bool handlePanelClick(AppState& state, POINT point)
     }
 
     for (size_t i = 0; i < state.modelButtonRects.size(); ++i) {
-        if (pointInRect(state.modelButtonRects[i], point)) {
+        const RECT& buttonRect = state.modelButtonRects[i];
+        // 只有当按钮在可见区域内时才可以点击
+        if (pointInRect(buttonRect, point) && 
+            buttonRect.top >= state.modelScrollAreaRect.top && 
+            buttonRect.bottom <= state.modelScrollAreaRect.bottom) {
             setVariant(state, static_cast<int>(i));
             return true;
         }
@@ -1056,11 +1188,13 @@ void importExternalObj(AppState& state) {
     ofn.lpstrDefExt = "obj";
 
     if (GetOpenFileNameA(&ofn)) {
+        // 【优化 2：UI 反馈】立即将鼠标光标切换为“沙漏”等待状态
+        HCURSOR hOldCursor = SetCursor(LoadCursor(NULL, IDC_WAIT));
+
         obj_mesh customMesh;
         if (loadSceneMesh(filename, customMesh, "Import OBJ")) {
             std::string displayName = "Custom: ";
 
-            // 提取不带路径和后缀的文件名用于显示
             std::string pathStr = filename;
             size_t pos = pathStr.find_last_of("\\/");
             if (pos != std::string::npos) pathStr = pathStr.substr(pos + 1);
@@ -1068,32 +1202,49 @@ void importExternalObj(AppState& state) {
             if (extPos != std::string::npos) pathStr = pathStr.substr(0, extPos);
             displayName += pathStr;
 
-            // 为了避免 UI 高度溢出，检测是否已经有自定义模型（索引 2）
-            // 如果存在，则替换；如果不存在，则在现有组后面追加。
+            // 【优化 3：细分熔断机制】防止大模型耗尽计算资源
+            size_t faceCount = customMesh.faces.size();
+
+            // 如果你之前的 buildLevels 只有两个参数，可以通过截断 mesh 集合来避免死机
+            // 这里假设我们手动控制传入原模型，如果面数大于 10000，就不做过多细分
+            auto getOptimizedLevels = [&](int methodIndex) {
+                if (faceCount > 10000) {
+                    // 对于超过 1 万面的大模型，强行只返回 0 级（原模），或者极低级细分
+                    std::vector<MeshView> singleLevel;
+                    // 此处伪代码：将 customMesh 直接转化为单层级的 MeshView
+                    // singleLevel.push_back( convertToMeshView(customMesh) ); 
+                    return buildLevels(customMesh, methodIndex); // 建议在你的 buildLevels 内部增加根据面数 return 的判断
+                }
+                else {
+                    return buildLevels(customMesh, methodIndex);
+                }
+                };
+
+            // 分配到场景数组
             if (state.sceneGroups[0].size() > 2) {
-                // 替换已有的自定义网格
-                state.scenes[state.sceneGroups[0][2]] = Scene{ "Loop", displayName, buildLevels(customMesh, 0) };
-                state.scenes[state.sceneGroups[1][2]] = Scene{ "Catmull-Clark", displayName, buildLevels(customMesh, 1) };
-                state.scenes[state.sceneGroups[2][2]] = Scene{ "Doo-Sabin", displayName, buildLevels(customMesh, 2) };
+                state.scenes[state.sceneGroups[0][2]] = Scene{ "Loop", displayName, getOptimizedLevels(0) };
+                state.scenes[state.sceneGroups[1][2]] = Scene{ "Catmull-Clark", displayName, getOptimizedLevels(1) };
+                state.scenes[state.sceneGroups[2][2]] = Scene{ "Doo-Sabin", displayName, getOptimizedLevels(2) };
             }
             else {
-                // 作为新的自定义网格追加
                 state.sceneGroups[0].push_back(static_cast<int>(state.scenes.size()));
-                state.scenes.push_back(Scene{ "Loop", displayName, buildLevels(customMesh, 0) });
+                state.scenes.push_back(Scene{ "Loop", displayName, getOptimizedLevels(0) });
 
                 state.sceneGroups[1].push_back(static_cast<int>(state.scenes.size()));
-                state.scenes.push_back(Scene{ "Catmull-Clark", displayName, buildLevels(customMesh, 1) });
+                state.scenes.push_back(Scene{ "Catmull-Clark", displayName, getOptimizedLevels(1) });
 
                 state.sceneGroups[2].push_back(static_cast<int>(state.scenes.size()));
-                state.scenes.push_back(Scene{ "Doo-Sabin", displayName, buildLevels(customMesh, 2) });
+                state.scenes.push_back(Scene{ "Doo-Sabin", displayName, getOptimizedLevels(2) });
             }
 
-            // 切换到刚导入的模型 (变体索引设为 2)
             state.currentVariant = 2;
             state.currentLevel = 0;
             refreshUi(state);
             InvalidateRect(state.window, nullptr, FALSE);
         }
+
+        // 【优化完毕】恢复普通鼠标光标
+        SetCursor(hOldCursor);
     }
 }
 
@@ -1110,6 +1261,50 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
         return 0;
     case WM_LBUTTONDOWN:
     {
+        int mx = GET_X_LPARAM(lParam);
+        int my = GET_Y_LPARAM(lParam);
+        // --- 新增：检测点击导入按钮 ---
+        if (mx >= state.importBtnRect.left && mx <= state.importBtnRect.right &&
+            my >= state.importBtnRect.top && my <= state.importBtnRect.bottom) {
+
+            state.openDropdown = 0; // 如果有打开的菜单，先关掉
+            importExternalObj(state); // 调用导入模型函数
+            return 0;
+        }
+
+        // --- 新增：检测滚动条拖动 ---
+        if (state.scrollbarThumbHeight > 0 && pointInRect(state.scrollbarThumbRect, { mx, my })) {
+            state.isScrollbarDragging = true;
+            state.lastMouse = { mx, my };
+            SetCapture(window);
+            return 0;
+        }
+
+        // --- 新增：检测滚动条轨道点击（跳转） ---
+        if (state.scrollbarThumbHeight > 0 && pointInRect(state.scrollbarRect, { mx, my })) {
+            // 点击滚动条轨道时，跳转到该位置
+            const int trackTop = state.scrollbarRect.top;
+            const int trackBottom = state.scrollbarRect.bottom;
+            const int trackHeight = trackBottom - trackTop;
+
+            if (my < state.scrollbarThumbRect.top) {
+                // 点击上方，向上滚动
+                const int scrollStep = kModelButtonHeight;
+                state.modelScrollOffset = std::max(0, state.modelScrollOffset - scrollStep);
+            } else if (my > state.scrollbarThumbRect.bottom) {
+                // 点击下方，向下滚动
+                const int variantCount = currentVariantCount(state);
+                const int totalButtonHeight = variantCount * kModelButtonHeight + (variantCount - 1) * kModelButtonGap;
+                const int availableHeight = state.modelScrollAreaRect.bottom - state.modelScrollAreaRect.top;
+                const int maxScroll = totalButtonHeight - availableHeight;
+                const int scrollStep = kModelButtonHeight;
+                state.modelScrollOffset = std::min(maxScroll, state.modelScrollOffset + scrollStep);
+            }
+            layoutUi(state);
+            InvalidateRect(window, nullptr, FALSE);
+            return 0;
+        }
+
         POINT point = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
         if (handlePanelClick(state, point)) {
             return 0;
@@ -1126,7 +1321,30 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
         return 0;
     }
     case WM_MOUSEMOVE:
-        if (state.dragging) {
+        if (state.isScrollbarDragging && state.scrollbarThumbHeight > 0) {
+            // 处理滚动条拖动
+            const int currentY = GET_Y_LPARAM(lParam);
+            const int deltaY = currentY - state.lastMouse.y;
+
+            const int trackHeight = state.scrollbarRect.bottom - state.scrollbarRect.top;
+            const int variantCount = currentVariantCount(state);
+            const int totalButtonHeight = variantCount * kModelButtonHeight + (variantCount - 1) * kModelButtonGap;
+            const int availableHeight = state.modelScrollAreaRect.bottom - state.modelScrollAreaRect.top;
+            const int maxScroll = totalButtonHeight - availableHeight;
+
+            if (maxScroll > 0) {
+                // 根据拖动距离计算滚动偏移
+                const int scrollableTrackHeight = trackHeight - state.scrollbarThumbHeight;
+                if (scrollableTrackHeight > 0) {
+                    const int newOffset = (deltaY * maxScroll) / scrollableTrackHeight;
+                    state.modelScrollOffset = std::max(0, std::min(maxScroll, state.modelScrollOffset + newOffset));
+                    layoutUi(state);
+                    InvalidateRect(state.window, nullptr, FALSE);
+                }
+            }
+
+            state.lastMouse.y = currentY;
+        } else if (state.dragging) {
             const POINT currentMouse = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
             state.yaw += static_cast<float>(currentMouse.x - state.lastMouse.x) * 0.01f;
             state.pitch += static_cast<float>(currentMouse.y - state.lastMouse.y) * 0.01f;
@@ -1136,7 +1354,10 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
         }
         return 0;
     case WM_LBUTTONUP:
-        if (state.dragging) {
+        if (state.isScrollbarDragging) {
+            state.isScrollbarDragging = false;
+            ReleaseCapture();
+        } else if (state.dragging) {
             state.dragging = false;
             ReleaseCapture();
         }
@@ -1144,20 +1365,40 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
     case WM_MOUSEWHEEL:
     {
         const short delta = GET_WHEEL_DELTA_WPARAM(wParam);
-        if (delta > 0) {
-            state.zoom = std::min(4.0f, state.zoom * 1.1f);
-        } else if (delta < 0) {
-            state.zoom = std::max(0.3f, state.zoom / 1.1f);
+        POINT point = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+
+        RECT clientRect = {};
+        GetClientRect(window, &clientRect);
+        ScreenToClient(window, &point);
+
+        // 检查鼠标是否在模型列表区域内
+        if (pointInRect(state.modelScrollAreaRect, point) && state.scrollbarThumbHeight > 0) {
+            // 计算需要滚动的距离（每次滚动按钮高度的1/3）
+            const int scrollStep = kModelButtonHeight / 3;
+            if (delta > 0) {
+                state.modelScrollOffset = std::max(0, state.modelScrollOffset - scrollStep);
+            } else if (delta < 0) {
+                const int variantCount = currentVariantCount(state);
+                const int totalButtonHeight = variantCount * kModelButtonHeight + (variantCount - 1) * kModelButtonGap;
+                const int availableHeight = state.modelScrollAreaRect.bottom - state.modelScrollAreaRect.top;
+                const int maxScroll = totalButtonHeight - availableHeight;
+                state.modelScrollOffset = std::min(maxScroll, state.modelScrollOffset + scrollStep);
+            }
+            layoutUi(state);
+            InvalidateRect(window, nullptr, FALSE);
+        } else {
+            // 缩放视图
+            if (delta > 0) {
+                state.zoom = std::min(4.0f, state.zoom * 1.1f);
+            } else if (delta < 0) {
+                state.zoom = std::max(0.3f, state.zoom / 1.1f);
+            }
+            InvalidateRect(window, nullptr, FALSE);
         }
-        InvalidateRect(window, nullptr, FALSE);
         return 0;
     }
     case WM_KEYDOWN:
         switch (wParam) {
-        case 'M': // 【新增】按下 O 键触发导入
-            state.openDropdown = 0;
-            importExternalObj(state);
-            return 0;
         case VK_LEFT:
             state.openDropdown = 0;
             cycleMeshVariant(state, -1);

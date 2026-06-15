@@ -7,121 +7,123 @@
 #include "obj_mesh.h"
 
 static inline bool isSpace(const char c) {
-  return (c == ' ') || (c == '\t');
+    return (c == ' ') || (c == '\t');
 }
 
 static inline bool isNewLine(const char c) {
-  return (c == '\r') || (c == '\n') || (c == '\0');
+    return (c == '\r') || (c == '\n') || (c == '\0');
 }
 
 // Make index zero-base, and also support relative index. 
 static inline int fixIndex(int idx, unsigned int n)
 {
-  int i;
+    int i;
 
-  if (idx > 0) {
-    i = idx - 1;
-  } else if (idx == 0) {
-    i = 0;
-  } else { // negative value = relative
-    i = n + idx;
-  }
-  return i;
+    if (idx > 0) {
+        i = idx - 1;
+    }
+    else if (idx == 0) {
+        i = 0;
+    }
+    else { // negative value = relative
+        i = n + idx;
+    }
+    return i;
 }
 
 static inline std::string parseString(const char*& token)
 {
-  std::string s;
-  size_t b = strspn(token, " \t"); // find first character index that is not space
-  size_t e = strcspn(token, " \t\r"); // find first character index that is space
-  s = std::string(&token[b], &token[e]);
+    std::string s;
+    size_t b = strspn(token, " \t"); // find first character index that is not space
+    size_t e = strcspn(token, " \t\r"); // find first character index that is space
+    s = std::string(&token[b], &token[e]);
 
-  token += (e - b);
-  return s;
+    token += (e - b);
+    return s;
 }
 
 static inline int parseInt(const char*& token)
 {
-  token += strspn(token, " \t");
-  int i = atoi(token);
-  token += strcspn(token, " \t\r");
-  return i;
+    token += strspn(token, " \t");
+    int i = atoi(token);
+    token += strcspn(token, " \t\r");
+    return i;
 }
 
 static inline float parseFloat(const char*& token)
 {
-  token += strspn(token, " \t");
-  float f = (float)atof(token);
-  token += strcspn(token, " \t\r");
-  return f;
+    token += strspn(token, " \t");
+    float f = (float)atof(token);
+    token += strcspn(token, " \t\r");
+    return f;
 }
 
 static inline void parseFloat2(
-  float& x, float& y,
-  const char*& token)
+    float& x, float& y,
+    const char*& token)
 {
-  x = parseFloat(token);
-  y = parseFloat(token);
+    x = parseFloat(token);
+    y = parseFloat(token);
 }
 
 static inline void parseFloat3(
-  float& x, float& y, float& z,
-  const char*& token)
+    float& x, float& y, float& z,
+    const char*& token)
 {
-  x = parseFloat(token);
-  y = parseFloat(token);
-  z = parseFloat(token);
+    x = parseFloat(token);
+    y = parseFloat(token);
+    z = parseFloat(token);
 }
 
 // Parse triples: i, i/j/k, i//k, i/j
 static vertex_index parseTriple(
-  const char* &token,
-  size_t vsize,
-  size_t vnsize,
-  size_t vtsize)
+    const char*& token,
+    size_t vsize,
+    size_t vnsize,
+    size_t vtsize)
 {
     vertex_index vi;
     vi.v_idx = -1; vi.vn_idx = -1; vi.vt_idx = -1;
 
-    vi.v_idx = fixIndex(atoi(token), (unsigned int) vsize); // vertex position index
+    vi.v_idx = fixIndex(atoi(token), (unsigned int)vsize); // vertex position index
     token += strcspn(token, "/ \t\r");
     if (token[0] != '/') {
-      return vi;
+        return vi;
     }
     token++;
 
     // i//k i//
     if (token[0] == '/') {
-      token++;
-      if (!isNewLine(token[0])) {
-        vi.vn_idx = fixIndex(atoi(token), (unsigned int) vnsize); // vertex normal index
-        token += strcspn(token, "/ \t\r");
-      }
-      return vi;
+        token++;
+        if (!isNewLine(token[0])) {
+            vi.vn_idx = fixIndex(atoi(token), (unsigned int)vnsize); // vertex normal index
+            token += strcspn(token, "/ \t\r");
+        }
+        return vi;
     }
-    
+
     // i/j/k or i/j
-    vi.vt_idx = fixIndex(atoi(token), (unsigned int) vtsize); // vertex texture coordinate index
+    vi.vt_idx = fixIndex(atoi(token), (unsigned int)vtsize); // vertex texture coordinate index
     token += strcspn(token, "/ \t\r");
     if (token[0] != '/') {
-      return vi;
+        return vi;
     }
 
     // i/j/k
     token++;  // skip '/'
-    vi.vn_idx = fixIndex(atoi(token), (unsigned int) vnsize);
+    vi.vn_idx = fixIndex(atoi(token), (unsigned int)vnsize);
     token += strcspn(token, "/ \t\r");
-    return vi; 
+    return vi;
 }
 
 // load obj mesh from file
-bool loadObj(std::string _filepath, obj_mesh & _obj) {
+bool loadObj(std::string _filepath, obj_mesh& _obj) {
     std::ifstream ifs(_filepath);
     if (!ifs) {
         std::cout << "cannot load obj file: " << _filepath << std::endl;
         return false;
     }
-    
+
     _obj.positions.clear();
     _obj.normals.clear();
     _obj.texcoords.clear();
@@ -136,10 +138,10 @@ bool loadObj(std::string _filepath, obj_mesh & _obj) {
 
         // Trim newline '\r\n' or '\n'
         if (linebuf.size() > 0) {
-            if (linebuf[linebuf.size()-1] == '\n') linebuf.erase(linebuf.size()-1);
+            if (linebuf[linebuf.size() - 1] == '\n') linebuf.erase(linebuf.size() - 1);
         }
         if (linebuf.size() > 0) {
-            if (linebuf[linebuf.size()-1] == '\r') linebuf.erase(linebuf.size()-1);
+            if (linebuf[linebuf.size() - 1] == '\r') linebuf.erase(linebuf.size() - 1);
         }
 
         // Skip if empty line.
@@ -199,8 +201,35 @@ bool loadObj(std::string _filepath, obj_mesh & _obj) {
             continue;
         }
     }
+    if (!_obj.positions.empty())
+    {
+        glm::vec3 mean(0.0f);
+        glm::vec3 min_pt = _obj.positions[0];
+        glm::vec3 max_pt = _obj.positions[0];
+
+        for (const auto& p : _obj.positions)
+        {
+            mean += p;
+            if (p.x < min_pt.x) min_pt.x = p.x;
+            if (p.y < min_pt.y) min_pt.y = p.y;
+            if (p.z < min_pt.z) min_pt.z = p.z;
+
+            if (p.x > max_pt.x) max_pt.x = p.x;
+            if (p.y > max_pt.y) max_pt.y = p.y;
+            if (p.z > max_pt.z) max_pt.z = p.z;
+        }
+        mean /= static_cast<float>(_obj.positions.size());
+        glm::vec3 scale_vec = max_pt - min_pt;
+        float max_scale = scale_vec.x;
+        if (scale_vec.y > max_scale) max_scale = scale_vec.y;
+        if (scale_vec.z > max_scale) max_scale = scale_vec.z;
+        if (max_scale < 0.0001f) max_scale = 1.0f;
+        for (auto& p : _obj.positions) {
+            p = (p - mean) / max_scale;
+        }
+    }
     return true;
-}
+}                                                   
 
 // write the obj mesh into file
 bool writeObj(std::string _filepath, obj_mesh _obj) {
@@ -212,22 +241,22 @@ bool writeObj(std::string _filepath, obj_mesh _obj) {
 
     // vertex pos
     for (auto iter = _obj.positions.cbegin(); iter != _obj.positions.end(); iter++) {
-        ofs << "v " << (*iter)[0] << " " 
-                    << (*iter)[1] << " "
-                    << (*iter)[2] << std::endl;
+        ofs << "v " << (*iter)[0] << " "
+            << (*iter)[1] << " "
+            << (*iter)[2] << std::endl;
     }
 
     // vertex normal
     for (auto iter = _obj.normals.cbegin(); iter != _obj.normals.end(); iter++) {
-        ofs << "vn " << (*iter)[0] << " " 
-                     << (*iter)[1] << " " 
-                     << (*iter)[2] << std::endl;
+        ofs << "vn " << (*iter)[0] << " "
+            << (*iter)[1] << " "
+            << (*iter)[2] << std::endl;
     }
 
     // vertex _obj.texcoords
     for (auto iter = _obj.texcoords.cbegin(); iter != _obj.texcoords.end(); iter++) {
-        ofs << "vt " << (*iter)[0] << " " 
-                     << (*iter)[1] << std::endl;
+        ofs << "vt " << (*iter)[0] << " "
+            << (*iter)[1] << std::endl;
     }
 
     // face indices
