@@ -110,6 +110,13 @@ struct FaceRenderInfo {
     COLORREF fillColor = kFillColor;
 };
 
+const COLORREF kLevelWireColors[4] = {
+        RGB(173, 216, 255),  // Level 0 : 淡蓝
+        RGB(100, 255, 100),  // Level 1 : 亮绿
+        RGB(255, 200, 100),  // Level 2 : 橙黄
+        RGB(255, 100, 100)   // Level 3 : 红
+};
+
 AppState& appState()
 {
     static AppState state;
@@ -905,7 +912,10 @@ void drawViewport(HDC dc, const RECT& clientRect, const AppState& state)
     }
 
     if (state.currentRenderMode == 0 || state.currentRenderMode == 2) {
-        HPEN meshPen = CreatePen(PS_SOLID, 1, kMeshColor);
+        int level = std::max(0, std::min(3, state.currentLevel));
+        COLORREF wireColor = kLevelWireColors[level];
+
+        HPEN meshPen = CreatePen(PS_SOLID, 1, wireColor);
         oldPen = static_cast<HPEN>(SelectObject(dc, meshPen));
 
         for (size_t faceIndex = 0; faceIndex < mesh.mesh.faces.size(); ++faceIndex) {
