@@ -19,7 +19,7 @@
 namespace {
 
 const char* kWindowClassName = "MeshSubdivisionViewerWindow";
-const wchar_t* kMethodNames[] = { L"Loop", L"Catmull-Clark", L"Doo-Sabin" };
+const wchar_t* kMethodNames[] = { L"Loop", L"Catmull-Clark", L"Doo-Sabin", L"Butterfly" };
 const wchar_t* kRenderModeNames[] = { L"Wireframe", L"Fill", L"Fill + Wireframe" };
 const int kPanelPadding = 18;
 const int kPanelMinWidth = 300;
@@ -324,13 +324,26 @@ std::vector<MeshView> buildLevels(const obj_mesh& source, int algorithm)
         return levels;
     }
 
-    Doosabin2Subdivision subdivision;
-    subdivision.loadMesh(current);
-    for (int i = 0; i < 3; ++i) {
-        current = subdivision.execute(1);
-        levels.push_back(makeMeshView(current));
+    if (algorithm == 2)
+    {
+        Doosabin2Subdivision subdivision;
+        subdivision.loadMesh(current);
+        for (int i = 0; i < 3; ++i) {
+            current = subdivision.execute(1);
+            levels.push_back(makeMeshView(current));
+        }
+        return levels;
     }
-    return levels;
+    
+    if (algorithm == 3) {
+        ButterflySubdivision subdivision;
+        subdivision.loadMesh(current);
+        for (int i = 0; i < 3; ++i) {
+            current = subdivision.execute(1);
+            levels.push_back(makeMeshView(current));
+        }
+        return levels;
+    }
 }
 
 bool loadSceneMesh(const std::string& path, obj_mesh& mesh, const char* caption)
@@ -374,10 +387,17 @@ bool loadScenes(AppState& state)
     state.scenes.push_back(Scene{ "Doo-Sabin", "tetrahedron", buildLevels(tetrahedron, 2) });
     state.scenes.push_back(Scene{ "Doo-Sabin", "cube_quad", buildLevels(cubeQuad, 2) });
 
+    // 【在此处新增】由于 Butterfly 适用于三角网格，我们传入 tetrahedron 和 cube_tri
+    state.scenes.push_back(Scene{ "Butterfly", "tetrahedron", buildLevels(tetrahedron, 3) });
+    state.scenes.push_back(Scene{ "Butterfly", "cube_tri", buildLevels(cubeTri, 3) });
+
+    // 修改前有 0,1 和 2,3 分组，现在补充第 3 组（Butterfly）
     state.sceneGroups.clear();
     state.sceneGroups.push_back(std::vector<int>{ 0, 1 });
     state.sceneGroups.push_back(std::vector<int>{ 2, 3 });
     state.sceneGroups.push_back(std::vector<int>{ 4, 5 });
+    // 【新增分组】
+    state.sceneGroups.push_back(std::vector<int>{ 6, 7 });
     return !state.scenes.empty();
 }
 
@@ -1050,7 +1070,7 @@ void drawPanel(Gdiplus::Graphics& graphics, const RECT& clientRect, const AppSta
     graphics.DrawString(shortcutTitle.c_str(), -1, &sectionFont, Gdiplus::PointF(static_cast<Gdiplus::REAL>(state.shortcutsRect.left + 14), static_cast<Gdiplus::REAL>(state.shortcutsRect.top + 12)), &textBrush);
     const std::wstring shortcutText =
         L"M: import external OBJ\n"
-        L"L/C/D: switch method\n"
+        L"L/C/D/B: switch method\n"
         L"Left/Right: switch mesh\n"
         L"Up/Down or 0-3: switch level\n"
         L"Drag: rotate, Wheel: zoom, R: reset";
@@ -1067,6 +1087,7 @@ void drawPanel(Gdiplus::Graphics& graphics, const RECT& clientRect, const AppSta
         methodItems.push_back(kMethodNames[0]);
         methodItems.push_back(kMethodNames[1]);
         methodItems.push_back(kMethodNames[2]);
+        methodItems.push_back(kMethodNames[3]); // 【新增这一行】将 Butterfly 加入 UI 下拉项
         drawDropdownPopup(graphics, state.methodComboRect, methodItems, state.currentMethod, bodyFont);
     } else if (state.openDropdown == 2) {
         std::vector<std::wstring> levelItems;
@@ -1225,6 +1246,8 @@ void importExternalObj(AppState& state) {
                 state.scenes[state.sceneGroups[0][2]] = Scene{ "Loop", displayName, getOptimizedLevels(0) };
                 state.scenes[state.sceneGroups[1][2]] = Scene{ "Catmull-Clark", displayName, getOptimizedLevels(1) };
                 state.scenes[state.sceneGroups[2][2]] = Scene{ "Doo-Sabin", displayName, getOptimizedLevels(2) };
+                // 【新增】
+                state.scenes[state.sceneGroups[3][2]] = Scene{ "Butterfly", displayName, getOptimizedLevels(3) };
             }
             else {
                 state.sceneGroups[0].push_back(static_cast<int>(state.scenes.size()));
@@ -1235,6 +1258,10 @@ void importExternalObj(AppState& state) {
 
                 state.sceneGroups[2].push_back(static_cast<int>(state.scenes.size()));
                 state.scenes.push_back(Scene{ "Doo-Sabin", displayName, getOptimizedLevels(2) });
+
+                // 【新增】
+                state.sceneGroups[3].push_back(static_cast<int>(state.scenes.size()));
+                state.scenes.push_back(Scene{ "Butterfly", displayName, getOptimizedLevels(3) });
             }
 
             state.currentVariant = 2;
@@ -1432,6 +1459,10 @@ LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wParam, LPARAM lPa
             state.openDropdown = 0;
             setMethod(state, 2);
             return 0;
+        case 'B':
+			state.openDropdown = 0;
+			setMethod(state, 3); // 【新增】按 B 键切换到 Butterfly 方法
+			return 0;
         case '0':
         case '1':
         case '2':

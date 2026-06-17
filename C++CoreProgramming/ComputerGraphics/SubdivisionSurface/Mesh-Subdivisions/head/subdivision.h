@@ -88,3 +88,16 @@ public:
 	void loadMesh(obj_mesh & _obj) override;
 	//No more normal calculate;
 };
+
+#include "subdivisions/butterfly.h" // 根据你的实际路径调整
+class ButterflySubdivision : public Subdivision {
+private:
+	std::vector<butterfly::vertex> vertexList;
+	std::vector<butterfly::edge> edgeList;
+	std::vector<butterfly::face> faceList;
+protected:
+	void subdiv() override;
+	obj_mesh makeMesh() override;
+public:
+	void loadMesh(obj_mesh& _obj) override;
+};

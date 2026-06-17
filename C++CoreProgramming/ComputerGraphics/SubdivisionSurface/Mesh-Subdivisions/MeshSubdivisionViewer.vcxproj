@@ -146,8 +146,10 @@
     <ClInclude Include="head\subdivisions\loop.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="head\subdivisions\butterfly.h" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\obj_mesh.cpp" />
+    <ClCompile Include="src\subdivisions\butterfly.cpp" />
     <ClCompile Include="src\subdivisions\catmull.cpp" />
     <ClCompile Include="src\subdivisions\doosabin.cpp" />
     <ClCompile Include="src\subdivisions\doosabin2.cpp" />

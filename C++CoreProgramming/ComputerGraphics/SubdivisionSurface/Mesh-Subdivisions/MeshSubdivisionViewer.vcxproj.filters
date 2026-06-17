@@ -55,5 +55,11 @@
     <ClCompile Include="src\subdivisions\loop.cpp">
       <Filter>Source Files\subdivisions</Filter>
     </ClCompile>
+    <ClCompile Include="head\subdivisions\butterfly.h">
+      <Filter>Header Files\subdivisions</Filter>
+    </ClCompile>
+    <ClCompile Include="src\subdivisions\butterfly.cpp">
+      <Filter>Source Files\subdivisions</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
