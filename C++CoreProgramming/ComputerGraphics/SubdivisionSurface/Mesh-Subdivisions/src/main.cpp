@@ -1107,51 +1107,66 @@ void drawPanel(Gdiplus::Graphics& graphics, const RECT& clientRect, const AppSta
 bool handlePanelClick(AppState& state, POINT point)
 {
     if (state.openDropdown != 0) {
+        // 确定当前下拉框对应的矩形
         const RECT fieldRect =
             state.openDropdown == 1 ? state.methodComboRect :
             (state.openDropdown == 2 ? state.levelComboRect : state.renderModeRect);
-        const int itemCount = state.openDropdown == 2 ? 4 : 3;
+
+        // --- 修正：根据下拉类型正确计算选项数量 ---
+        int itemCount = 0;
+        if (state.openDropdown == 1)      // 方法下拉：4项
+            itemCount = 4;
+        else if (state.openDropdown == 2) // 级别下拉：4项
+            itemCount = 4;
+        else if (state.openDropdown == 3) // 渲染模式下拉：3项
+            itemCount = 3;
+
         const RECT popupRect = dropdownPopupRect(fieldRect, itemCount);
 
+        // 如果点击在弹出框区域内
         if (pointInRect(popupRect, point)) {
+            int dropdownType = state.openDropdown; // 保存类型，因为随后会清零
+
             for (int i = 0; i < itemCount; ++i) {
-                const RECT itemRect = makeRect(
+                RECT itemRect = makeRect(
                     popupRect.left + 4,
                     popupRect.top + 4 + i * kDropdownPopupItemHeight,
                     popupRect.right - 4,
                     popupRect.top + 4 + (i + 1) * kDropdownPopupItemHeight);
 
                 if (pointInRect(itemRect, point)) {
-                    state.openDropdown = 0;
-                    if (itemCount == 4) {
-                        setLevel(state, i);
-                    } else if (fieldRect.left == state.methodComboRect.left &&
-                               fieldRect.top == state.methodComboRect.top &&
-                               fieldRect.right == state.methodComboRect.right &&
-                               fieldRect.bottom == state.methodComboRect.bottom) {
+                    state.openDropdown = 0; // 关闭下拉
+                    if (dropdownType == 1)
                         setMethod(state, i);
-                    } else {
+                    else if (dropdownType == 2)
+                        setLevel(state, i);
+                    else if (dropdownType == 3)
                         setRenderMode(state, i);
-                    }
+                    InvalidateRect(state.window, nullptr, FALSE);
                     return true;
                 }
             }
 
-            // Clicks inside the popup padding should not fall through to underlying controls.
+            // 点击在弹出框内但未命中任何选项（如空白区域），只关闭下拉
+            state.openDropdown = 0;
+            InvalidateRect(state.window, nullptr, FALSE);
             return true;
         }
 
+        // 点击在弹出框外，但仍在下拉框控件上 → 关闭下拉
         if (pointInRect(fieldRect, point)) {
             state.openDropdown = 0;
             InvalidateRect(state.window, nullptr, FALSE);
             return true;
         }
 
-        // When a dropdown is open, clicks outside only close it and never activate controls behind it.
+        // 点击在弹出框外且不在控件上 → 关闭下拉，阻止穿透
         state.openDropdown = 0;
         InvalidateRect(state.window, nullptr, FALSE);
         return true;
     }
+
+    // --- 以下为未打开下拉时的点击处理（原有逻辑保持不变） ---
 
     if (pointInRect(state.methodComboRect, point)) {
         state.openDropdown = 1;
@@ -1174,13 +1189,14 @@ bool handlePanelClick(AppState& state, POINT point)
     for (size_t i = 0; i < state.modelButtonRects.size(); ++i) {
         const RECT& buttonRect = state.modelButtonRects[i];
         // 只有当按钮在可见区域内时才可以点击
-        if (pointInRect(buttonRect, point) && 
-            buttonRect.top >= state.modelScrollAreaRect.top && 
+        if (pointInRect(buttonRect, point) &&
+            buttonRect.top >= state.modelScrollAreaRect.top &&
             buttonRect.bottom <= state.modelScrollAreaRect.bottom) {
             setVariant(state, static_cast<int>(i));
             return true;
         }
     }
+
     return false;
 }
 
