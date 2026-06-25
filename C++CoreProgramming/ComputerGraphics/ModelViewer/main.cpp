@@ -167,14 +167,14 @@ void InitPanelButtons() {
 
     AddButton(BTN_HEADER, L"► 文件操作", L"", L"", 0, y, 26);
     y += 30;
-    AddButton(BTN_ACTION, L"加载外部模型文件...", L"O", L"", AID_OPEN_MODEL, y);
+    AddButton(BTN_ACTION, L"加载外部模型文件...", L"FBX", L"", AID_OPEN_MODEL, y);
     y += BTN_HEIGHT + SECTION_GAP + 4;
 
     AddButton(BTN_HEADER, L"► 视图模式", L"", L"", 0, y, 26);
     y += 30;
     AddButton(BTN_DROPDOWN, L"检视模式", L"Space", L"", AID_VIEW_MODE, y);
     y += BTN_HEIGHT + 4;
-    AddButton(BTN_TOGGLE, L" orthographic / perspective", L"V", L"", AID_TOGGLE_PROJECTION, y);
+    AddButton(BTN_TOGGLE, L" 正交 / 透视", L"V", L"", AID_TOGGLE_PROJECTION, y);
     y += BTN_HEIGHT + SECTION_GAP + 4;
 
 
@@ -186,7 +186,7 @@ void InitPanelButtons() {
     y += 30;
     AddButton(BTN_ACTION, L"重置默认视角", L"S", L"", AID_RESET_ALL, y);
     y += BTN_HEIGHT + 4;
-    AddButton(BTN_ACTION, L"完全退出系统", L"Q", L"", AID_QUIT, y);
+    AddButton(BTN_ACTION, L"退出系统", L"Q", L"", AID_QUIT, y);
     y += BTN_HEIGHT + SECTION_GAP + 4;
 
     AddButton(BTN_HEADER, L"► 鼠标交互说明", L"", L"", 0, y, 26);
@@ -403,7 +403,7 @@ void DrawPanel(HDC hdc, RECT& panelRect) {
             const wchar_t* modeText = g_viewModeOptions[g_viewMode];
             g.DrawString(modeText, -1, &btnFont, PointF((float)textX, (float)textY), &btnTextBrush);
             Font arrowFont(L"Segoe UI", 8);
-            g.DrawString(g_viewModeDropdownOpen ? L"?" : L"?", -1, &arrowFont,
+            g.DrawString(g_viewModeDropdownOpen ? L"" : L"", -1, &arrowFont,
                 PointF((float)(bx + bw - 30), (float)(by + (bh - 16) / 2)), &btnTextBrush);
             int kx = bx + bw - 62;
             int ky = by + (bh - 18) / 2;
@@ -413,7 +413,6 @@ void DrawPanel(HDC hdc, RECT& panelRect) {
         }
     }
 
-    // ??????????
     if (g_viewModeDropdownOpen) {
         for (int i = 0; i < g_btnCount; i++) {
             if (g_buttons[i].type == BTN_DROPDOWN && g_buttons[i].actionId == AID_VIEW_MODE) {
@@ -822,7 +821,6 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
         if (mx >= panelLeft) {
             int relX = mx - panelLeft;
             int relY = my;
-            // ???????????
             if (g_viewModeDropdownOpen) {
                 for (int i = 0; i < g_btnCount; i++) {
                     if (g_buttons[i].type == BTN_DROPDOWN && g_buttons[i].actionId == AID_VIEW_MODE) {
