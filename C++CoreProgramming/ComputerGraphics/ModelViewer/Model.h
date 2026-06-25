@@ -55,8 +55,6 @@ public:
     ~Model();
 
     // ---- 通用基础控制函数 ----
-    void loadFile(int argc, char** argv); // 加载模型（保留原签名）
-    void saveModel();                     // 将当前内存中的几何顶点导出保存为 OBJ
     void resetVars();                     // 重置所有变换控制变量
     void calculateVertex();               // 计算顶点的中心均值（用以居中对齐）
     void getMaxMins();                    // 提取边界体最大/最小值（用以自适应缩放）

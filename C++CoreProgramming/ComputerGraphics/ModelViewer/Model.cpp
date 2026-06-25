@@ -34,23 +34,6 @@ void Model::resetVars() {
     this->model_rotz = 0;
 }
 
-// ---- 传统的保存导出 OBJ 模型功能 ----
-void Model::saveModel() {
-    std::ofstream saveObj;
-    saveObj.open("output.obj");
-
-    // 遍历当前的动态顶点，将其序列化写入 OBJ 
-    for (unsigned int h = 0; h < this->vertex_list.size(); h += 3) {
-        saveObj << "v " << this->vertex_list.at(h) << " " <<
-            this->vertex_list.at(h + 1) << " " << this->vertex_list.at(h + 2) << std::endl;
-    }
-    // 写入面索引关联数据
-    for (unsigned int h = 0; h < this->s_list.size(); h++) {
-        saveObj << this->s_list.at(h) << std::endl;
-    }
-    saveObj.close();
-}
-
 // ---- 传统几何重心均值计算逻辑 ----
 void Model::calculateVertex() {
     this->mean_x = 0;
@@ -126,11 +109,6 @@ void Model::applyTransfToMatrix() {
             this->base_vertex_list.at(3 * h + 2) = (this->base_vertex_list.at(3 * h + 2) - this->mean_z) * sFactor;
         }
     }
-}
-
-// ---- 传统加载签名接口 ----
-void Model::loadFile(int argc, char** argv) {
-    // 遗留逻辑接口占位，主控文件已升级至下方的现代 loadFBX 以及专属 OBJ 提取方法
 }
 
 // ---- 精确加载 FBX 骨骼动画资产核心实现 ----
