@@ -121,6 +121,8 @@ bool Model::loadFBX(const std::string& filename) {
     this->normal_list.clear();
     this->base_vertex_list.clear();
     this->base_normal_list.clear();
+    this->bind_vertex_orig.clear();
+    this->bind_normal_orig.clear();
     this->bone_weights.clear();
     this->fbx_faces.clear();
     this->bones.clear();
@@ -286,6 +288,15 @@ void Model::processFBXMeshRecursive(FbxNode* node) {
                 this->base_normal_list.push_back((float)normal[1]);
                 this->base_normal_list.push_back((float)normal[2]);
 
+				// 保存原始绑定姿态顶点和法线数据（未归一化）
+                this->bind_vertex_orig.push_back((float)vertexPos[0]);
+                this->bind_vertex_orig.push_back((float)vertexPos[1]);
+                this->bind_vertex_orig.push_back((float)vertexPos[2]);
+
+                this->bind_normal_orig.push_back((float)normal[0]);
+                this->bind_normal_orig.push_back((float)normal[1]);
+                this->bind_normal_orig.push_back((float)normal[2]);
+
                 // 压入本顶点对应的蒙皮权重
                 this->bone_weights.push_back(cpWeights[cpIdx]);
 
@@ -342,25 +353,26 @@ void Model::updateAnimation(float deltaTime) {
 
 // ---- 核心多骨骼线性混合蒙皮算法 (Linear Blend Skinning, LBS) CPU 实现 ----
 void Model::computeSkinning() {
-    size_t vertexCount = this->base_vertex_list.size() / 3;
+    size_t vertexCount = this->bind_vertex_orig.size() / 3;
+    if (vertexCount == 0) return;  // 无骨骼数据则跳过
+
+    float sFactor = (this->max_scale > 0.0001f) ? (1.5f / this->max_scale) : 1.0f;
 
     for (size_t i = 0; i < vertexCount; i++) {
-        // 基准姿态顶点的初始坐标
-        float bx = this->base_vertex_list[3 * i];
-        float by = this->base_vertex_list[3 * i + 1];
-        float bz = this->base_vertex_list[3 * i + 2];
+        // 原始顶点（未归一化）
+        float bx = this->bind_vertex_orig[3 * i];
+        float by = this->bind_vertex_orig[3 * i + 1];
+        float bz = this->bind_vertex_orig[3 * i + 2];
+        float bnx = this->bind_normal_orig[3 * i];
+        float bny = this->bind_normal_orig[3 * i + 1];
+        float bnz = this->bind_normal_orig[3 * i + 2];
 
-        // 基准法线朝向
-        float bnx = this->base_normal_list[3 * i];
-        float bny = this->base_normal_list[3 * i + 1];
-        float bnz = this->base_normal_list[3 * i + 2];
-
-        float outX = 0.0f, outY = 0.0f, outZ = 0.0f;
-        float outNX = 0.0f, outNY = 0.0f, outNZ = 0.0f;
+        float outX = 0, outY = 0, outZ = 0;
+        float outNX = 0, outNY = 0, outNZ = 0;
 
         const VertexBoneData& wData = this->bone_weights[i];
 
-        // 归一化校验：求算有效影响权重之和，避免非对称剪裁浮点数累计误差
+        // 归一化权重
         float totalWeight = 0.0f;
         for (int k = 0; k < 4; k++) {
             if (wData.boneIDs[k] != -1) totalWeight += wData.weights[k];
@@ -371,39 +383,43 @@ void Model::computeSkinning() {
         for (int k = 0; k < 4; k++) {
             int bIdx = wData.boneIDs[k];
             float weight = wData.weights[k] / totalWeight;
-
             if (bIdx >= 0 && bIdx < (int)this->bones.size() && weight > 0.0f) {
                 hasSkinning = true;
                 const double* M = this->bones[bIdx].currentTransform;
 
-                // 1. 对顶点坐标执行矩阵乘法与权重混叠（平移项生效）
+                // 顶点变换（原始空间）
                 outX += (float)(M[0] * bx + M[4] * by + M[8] * bz + M[12]) * weight;
                 outY += (float)(M[1] * bx + M[5] * by + M[9] * bz + M[13]) * weight;
                 outZ += (float)(M[2] * bx + M[6] * by + M[10] * bz + M[14]) * weight;
 
-                // 2. 对法线矢量执行矩阵乘法（舍弃第4列平移项，仅做纯方向姿态改变）
+                // 法线旋转（仅用旋转部分）
                 outNX += (float)(M[0] * bnx + M[4] * bny + M[8] * bnz) * weight;
                 outNY += (float)(M[1] * bnx + M[5] * bny + M[9] * bnz) * weight;
                 outNZ += (float)(M[2] * bnx + M[6] * bny + M[10] * bnz) * weight;
             }
         }
 
-        // 安全回滚降级：针对完全没有骨骼附加的流浪顶点，维持原始姿态
+        // 若顶点无骨骼影响，保持绑定姿态
         if (!hasSkinning) {
             outX = bx; outY = by; outZ = bz;
             outNX = bnx; outNY = bny; outNZ = bnz;
         }
 
-        // 3. 将解算出的最终动态几何蒙皮坐标送回 OpenGL 渲染管线内存区
-        this->vertex_list[3 * i] = outX;
-        this->vertex_list[3 * i + 1] = outY;
-        this->vertex_list[3 * i + 2] = outZ;
+        // 应用归一化变换（居中 + 缩放）
+        outX = (outX - this->mean_x) * sFactor;
+        outY = (outY - this->mean_y) * sFactor;
+        outZ = (outZ - this->mean_z) * sFactor;
 
-        // 单位正交化重算，规避缩放导致的法线不均
+        // 法线单位化
         float len = sqrtf(outNX * outNX + outNY * outNY + outNZ * outNZ);
         if (len > 0.0001f) {
             outNX /= len; outNY /= len; outNZ /= len;
         }
+
+        // 写入渲染缓冲区
+        this->vertex_list[3 * i] = outX;
+        this->vertex_list[3 * i + 1] = outY;
+        this->vertex_list[3 * i + 2] = outZ;
         this->normal_list[3 * i] = outNX;
         this->normal_list[3 * i + 1] = outNY;
         this->normal_list[3 * i + 2] = outNZ;

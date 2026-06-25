@@ -94,6 +94,8 @@ public:
 
     std::vector<float> base_vertex_list;     // 原始静态绑定姿态（Bind Pose）下的顶点基准坐标
     std::vector<float> base_normal_list;     // 原始静态绑定姿态下的法线基准方向
+    std::vector<float> bind_vertex_orig;     // 原始绑定姿态顶点（未归一化）
+    std::vector<float> bind_normal_orig;     // 原始绑定姿态法线（未归一化）
     std::vector<VertexBoneData> bone_weights;// 顶点对应的骨骼关联信息（与 base_vertex_list 一一对应）
     std::vector<FBXBone> bones;              // 全局骨骼层级节点树平铺列表
     std::vector<FBXMeshFace> fbx_faces;      // 记录面片网格的拓扑信息

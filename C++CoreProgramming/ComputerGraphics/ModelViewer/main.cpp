@@ -55,7 +55,6 @@ using namespace std;
 #define SECTION_GAP           6
 #define PANEL_LEFT_PAD        10
 
-// ????????
 enum ViewMode { VIEW_WIREFRAME = 0, VIEW_SOLID = 1, VIEW_SKELETON = 2 };
 
 
@@ -637,9 +636,7 @@ void DrawOpenGLScene() {
     glRotatef(g_model.model_roty, 0.0f, 1.0f, 0.0f);
     glRotatef(g_model.model_rotz, 0.0f, 0.0f, 1.0f);
 
-    // ????????? / ?? / ????
     if (g_viewMode == VIEW_SKELETON) {
-        // ???????????????????????????
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -784,7 +781,6 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
         if (mx >= panelLeft) {
             int relX = mx - panelLeft;
             int relY = my;
-            // ????????
             g_viewModeDropdownHover = -1;
             if (g_viewModeDropdownOpen) {
                 for (int i = 0; i < g_btnCount; i++) {
@@ -842,7 +838,6 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
                         break;
                     }
                 }
-                // ??????????????
                 g_viewModeDropdownOpen = false;
                 g_viewModeDropdownHover = -1;
                 InvalidateRect(hWnd, NULL, FALSE);
@@ -900,7 +895,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     if (!RegisterClass(&glwc)) return 1;
 
     int winW = 1250; int winH = 800;
-    g_hMainWnd = CreateWindowEx(0, L"ModelViewerMainShell", L"高级3D模型查看器(FBX Skeletal Anim + OBJ Static)", WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, winW, winH, NULL, NULL, hInstance, NULL);
+    g_hMainWnd = CreateWindowEx(0, L"ModelViewerMainShell", L"高级3D模型查看器(FBX Skeletal Anim)", WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, winW, winH, NULL, NULL, hInstance, NULL);
     if (!g_hMainWnd) return 1;
 
     g_hGLWnd = CreateWindowEx(0, L"ModelViewerGLView", L"", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS, 0, 0, winW - PANEL_WIDTH, winH, g_hMainWnd, NULL, hInstance, NULL);
