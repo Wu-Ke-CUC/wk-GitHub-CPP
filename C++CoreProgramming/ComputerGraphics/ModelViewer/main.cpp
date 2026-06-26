@@ -247,43 +247,104 @@ static void DrawCapsule(float x1, float y1, float z1, float x2, float y2, float 
 // 骨骼系统检视渲染：胶囊体表示骨骼，圆球表示关节
 static void DrawSkeleton() {
     if (!g_modelLoaded || !g_model.is_fbx || g_model.bones.empty()) return;
+
     static GLUquadric* s_skelQuad = nullptr;
     if (!s_skelQuad) s_skelQuad = gluNewQuadric();
     gluQuadricDrawStyle(s_skelQuad, GLU_FILL);
     gluQuadricNormals(s_skelQuad, GLU_SMOOTH);
-    const float jointRadius = 0.025f;
-    const float boneRadius = 0.012f;
+
     const int slices = 12;
     const int stacks = 6;
     float sFactor = (g_model.max_scale > 0.0001f) ? (1.5f / g_model.max_scale) : 1.0f;
-    glDisable(GL_LIGHTING);
-    glDisable(GL_TEXTURE_2D);
-    for (size_t b = 0; b < g_model.bones.size(); b++) {
-        int parentIdx = g_model.bones[b].parentIndex;
-        if (parentIdx >= 0 && parentIdx < (int)g_model.bones.size()) {
-            float p1x = ((float)g_model.bones[parentIdx].currentGlobalPos[0] - g_model.mean_x) * sFactor;
-            float p1y = ((float)g_model.bones[parentIdx].currentGlobalPos[1] - g_model.mean_y) * sFactor;
-            float p1z = ((float)g_model.bones[parentIdx].currentGlobalPos[2] - g_model.mean_z) * sFactor;
-            float p2x = ((float)g_model.bones[b].currentGlobalPos[0] - g_model.mean_x) * sFactor;
-            float p2y = ((float)g_model.bones[b].currentGlobalPos[1] - g_model.mean_y) * sFactor;
-            float p2z = ((float)g_model.bones[b].currentGlobalPos[2] - g_model.mean_z) * sFactor;
-            glColor3f(0.3f, 0.7f, 0.9f);
-            DrawCapsule(p1x, p1y, p1z, p2x, p2y, p2z, boneRadius, s_skelQuad, slices, stacks);
+
+    // ========== 1. 预计算所有骨骼在缩放空间下的位置 ==========
+    size_t boneCount = g_model.bones.size();
+    std::vector<float> posX(boneCount), posY(boneCount), posZ(boneCount);
+    for (size_t i = 0; i < boneCount; ++i) {
+        posX[i] = ((float)g_model.bones[i].currentGlobalPos[0] - g_model.mean_x) * sFactor;
+        posY[i] = ((float)g_model.bones[i].currentGlobalPos[1] - g_model.mean_y) * sFactor;
+        posZ[i] = ((float)g_model.bones[i].currentGlobalPos[2] - g_model.mean_z) * sFactor;
+    }
+
+    // ========== 2. 计算每条骨骼的长度（缩放后） ==========
+    std::vector<float> boneLengths(boneCount, 0.0f);
+    for (size_t i = 0; i < boneCount; ++i) {
+        int parent = g_model.bones[i].parentIndex;
+        if (parent >= 0 && parent < (int)boneCount) {
+            float dx = posX[i] - posX[parent];
+            float dy = posY[i] - posY[parent];
+            float dz = posZ[i] - posZ[parent];
+            boneLengths[i] = sqrtf(dx * dx + dy * dy + dz * dz);
         }
     }
-    for (size_t b = 0; b < g_model.bones.size(); b++) {
-        float px = ((float)g_model.bones[b].currentGlobalPos[0] - g_model.mean_x) * sFactor;
-        float py = ((float)g_model.bones[b].currentGlobalPos[1] - g_model.mean_y) * sFactor;
-        float pz = ((float)g_model.bones[b].currentGlobalPos[2] - g_model.mean_z) * sFactor;
+
+    // ========== 3. 计算每个关节的半径 ==========
+    // 规则：关节半径 = (所有相邻骨骼长度的平均值) × 0.2
+    std::vector<float> jointRadii(boneCount, 0.01f); // 保底最小值
+    for (size_t i = 0; i < boneCount; ++i) {
+        if (g_model.bones[i].parentIndex == -1) {
+            jointRadii[i] = 0.025f;
+            continue;
+        }
+
+        float sumLen = 0.0f;
+        int count = 0;
+
+        // 3.1 加入父骨骼（如果存在）
+        if (g_model.bones[i].parentIndex >= 0) {
+            sumLen += boneLengths[i];
+            count++;
+        }
+
+        // 3.2 加入所有子骨骼
+        for (size_t j = 0; j < boneCount; ++j) {
+            if (g_model.bones[j].parentIndex == (int)i) {
+                sumLen += boneLengths[j];
+                count++;
+            }
+        }
+
+        if (count > 0) {
+            float avgLen = sumLen / (float)count;
+            jointRadii[i] = avgLen * 0.2f;
+            if (jointRadii[i] < 0.001f) jointRadii[i] = 0.001f; // 防止过小消失
+        }
+    }
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_TEXTURE_2D);
+
+    // ========== 4. 绘制骨骼（胶囊体） ==========
+    for (size_t i = 0; i < boneCount; ++i) {
+        int parent = g_model.bones[i].parentIndex;
+        if (parent < 0 || parent >= (int)boneCount) continue;
+
+        float p1x = posX[parent], p1y = posY[parent], p1z = posZ[parent];
+        float p2x = posX[i], p2y = posY[i], p2z = posZ[i];
+
+        // 骨骼半径 = 该骨骼自身长度 × 0.2
+        float boneRadius = boneLengths[i] * 0.2f;
+        if (boneRadius < 0.001f) boneRadius = 0.001f;
+
+        glColor3f(0.3f, 0.7f, 0.9f);
+        DrawCapsule(p1x, p1y, p1z, p2x, p2y, p2z, boneRadius, s_skelQuad, slices, stacks);
+    }
+
+    // ========== 5. 绘制关节（球体） ==========
+    for (size_t i = 0; i < boneCount; ++i) {
         glPushMatrix();
-        glTranslatef(px, py, pz);
-        if (g_model.bones[b].parentIndex == -1)
+        glTranslatef(posX[i], posY[i], posZ[i]);
+
+        // 根节点用红色强调，其余用淡蓝色
+        if (g_model.bones[i].parentIndex == -1)
             glColor3f(1.0f, 0.35f, 0.35f);
         else
             glColor3f(0.3f, 0.85f, 1.0f);
-        gluSphere(s_skelQuad, jointRadius, slices, stacks);
+
+        gluSphere(s_skelQuad, jointRadii[i], slices, stacks);
         glPopMatrix();
     }
+
     glEnable(GL_LIGHTING);
 }
 
