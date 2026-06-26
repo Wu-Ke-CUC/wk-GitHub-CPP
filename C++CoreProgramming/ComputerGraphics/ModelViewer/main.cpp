@@ -117,7 +117,7 @@ static Model    g_model;
 static Camera   g_camera;
 static GLuint   g_displayList = 0;
 
-static int g_viewMode = VIEW_WIREFRAME;  // 0=?? 1=?? 2=??
+static int g_viewMode = VIEW_WIREFRAME;  // 0=线框网格 1=实体渲染 2=骨骼显示
 static int g_isOrtho = 1;
 static bool g_modelLoaded = false;
 static bool g_animPlaying = false;
