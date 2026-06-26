@@ -74,7 +74,7 @@ void ActionQuit();
 void ActionOpenModel();
 
 // UI
-enum BtnType { BTN_TOGGLE, BTN_DIRECTION, BTN_ACTION, BTN_HEADER, BTN_INFO, BTN_DROPDOWN };
+enum BtnType { BTN_TOGGLE, BTN_DIRECTION, BTN_ACTION, BTN_HEADER, BTN_INFO, BTN_DROPDOWN, BTN_SLIDER };
 struct GButton {
     RECT rect;
     BtnType type;
@@ -85,6 +85,11 @@ struct GButton {
     bool hover;
     bool pressed;
     int hoverSub;
+    // 滑动条专用字段
+    float sliderValue;
+    float sliderMin;
+    float sliderMax;
+    bool sliderDragging;
 };
 
 enum ActionId {
@@ -94,7 +99,9 @@ enum ActionId {
     AID_QUIT,
     AID_OPEN_MODEL,
     AID_TOGGLE_ANIMATION,
-    AID_VIEW_MODE
+    AID_VIEW_MODE,
+    AID_SLIDER_SPEED,
+    AID_SLIDER_PROGRESS
 };
 
 // ============================================================
@@ -114,6 +121,8 @@ static int g_viewMode = VIEW_WIREFRAME;  // 0=?? 1=?? 2=??
 static int g_isOrtho = 1;
 static bool g_modelLoaded = false;
 static bool g_animPlaying = false;
+static float g_animSpeed = 1.0f;
+static float g_animProgress = 0.0f;
 
 static bool  g_mouseLDown = false;
 static bool  g_mouseRDown = false;
@@ -181,6 +190,21 @@ void InitPanelButtons() {
     y += 30;
     AddButton(BTN_TOGGLE, L"动画播放 / 暂停", L"P", L"", AID_TOGGLE_ANIMATION, y);
     y += BTN_HEIGHT + SECTION_GAP + 4;
+    // 动画播放速度滑动条
+    AddButton(BTN_SLIDER, L"播放速度", L"", L"", AID_SLIDER_SPEED, y, 36);
+    g_buttons[g_btnCount - 1].sliderValue = 1.0f;
+    g_buttons[g_btnCount - 1].sliderMin = 0.0f;
+    g_buttons[g_btnCount - 1].sliderMax = 3.0f;
+    g_buttons[g_btnCount - 1].sliderDragging = false;
+    y += 36 + 4;
+
+    // 动画播放进度滑动条
+    AddButton(BTN_SLIDER, L"播放进度", L"", L"", AID_SLIDER_PROGRESS, y, 36);
+    g_buttons[g_btnCount - 1].sliderValue = 0.0f;
+    g_buttons[g_btnCount - 1].sliderMin = 0.0f;
+    g_buttons[g_btnCount - 1].sliderMax = 1.0f;
+    g_buttons[g_btnCount - 1].sliderDragging = false;
+    y += 36 + SECTION_GAP + 4;
     AddButton(BTN_HEADER, L"► 系统全局管理", L"", L"", 0, y, 26);
     y += 30;
     AddButton(BTN_ACTION, L"重置默认视角", L"S", L"", AID_RESET_ALL, y);
@@ -471,6 +495,55 @@ void DrawPanel(HDC hdc, RECT& panelRect) {
             DrawRoundRect(g, NULL, &keyBg, kx, ky, 32, 18, 4);
             g.DrawString(b.keyText, -1, &keySmallFont, PointF((float)kx + 4, (float)ky + 3), &keyBrush);
         }
+        else if (b.type == BTN_SLIDER) {
+            // 绘制标签文本
+            g.DrawString(b.label, -1, &btnFont, PointF((float)textX, (float)(by + 2)), &btnTextBrush);
+
+            // 根据滑块类型获取当前值
+            float sliderVal = b.sliderValue;
+            if (b.actionId == AID_SLIDER_SPEED) sliderVal = g_animSpeed;
+            else if (b.actionId == AID_SLIDER_PROGRESS) sliderVal = g_animProgress;
+
+            // 计算滑动条轨道区域
+            int trackLeft = bx + 70;
+            int trackRight = bx + bw - 60;
+            int trackWidth = trackRight - trackLeft;
+            int trackCenterY = by + bh / 2;
+            int trackHeight = 4;
+            int trackTop = trackCenterY - trackHeight / 2;
+
+            // 绘制轨道背景
+            SolidBrush trackBg(ToGdiColor(CLR_BG_KEY));
+            g.FillRectangle(&trackBg, trackLeft, trackTop, trackWidth, trackHeight);
+
+            // 绘制已填充部分
+            float ratio = (sliderVal - b.sliderMin) / (b.sliderMax - b.sliderMin);
+            if (ratio < 0.0f) ratio = 0.0f;
+            if (ratio > 1.0f) ratio = 1.0f;
+            int fillWidth = (int)((float)trackWidth * ratio);
+            if (fillWidth > 0) {
+                SolidBrush fillBrush(ToGdiColor(CLR_TEXT_ACCENT));
+                g.FillRectangle(&fillBrush, trackLeft, trackTop, fillWidth, trackHeight);
+            }
+
+            // 绘制滑块圆形手柄
+            int thumbX = trackLeft + fillWidth;
+            int thumbY = trackCenterY;
+            int thumbRadius = 7;
+            SolidBrush thumbBg(ToGdiColor(CLR_TEXT_ACCENT));
+            Pen thumbBorder(ToGdiColor(CLR_BORDER), 2.0f);
+            g.FillEllipse(&thumbBg, thumbX - thumbRadius, thumbY - thumbRadius, thumbRadius * 2, thumbRadius * 2);
+            g.DrawEllipse(&thumbBorder, thumbX - thumbRadius, thumbY - thumbRadius, thumbRadius * 2, thumbRadius * 2);
+
+            // 绘制数值文本
+            wchar_t valText[32];
+            if (b.actionId == AID_SLIDER_SPEED) {
+                swprintf(valText, 32, L"%.2fx", sliderVal);
+            } else {
+                swprintf(valText, 32, L"%.2f", sliderVal);
+            }
+            g.DrawString(valText, -1, &btnFont, PointF((float)(trackRight + 8), (float)(by + 2)), &btnTextBrush);
+        }
     }
 
     if (g_viewModeDropdownOpen) {
@@ -503,6 +576,14 @@ int HitTestButtons(int mx, int my) {
     for (int i = 0; i < g_btnCount; i++) {
         GButton& b = g_buttons[i];
         if (b.type == BTN_HEADER || b.type == BTN_INFO) continue;
+        if (b.type == BTN_SLIDER) {
+            RECT r = b.rect;
+            r.top -= g_panelScrollOffset;
+            r.bottom -= g_panelScrollOffset;
+            if (mx >= r.left && mx <= r.right && my >= r.top && my <= r.bottom)
+                return i;
+            continue;
+        }
         if (b.type == BTN_DROPDOWN) {
             RECT r = b.rect;
             r.top -= g_panelScrollOffset;
@@ -564,7 +645,10 @@ void ActionResetAll() {
     g_camera.resetVars();
     g_viewMode = VIEW_WIREFRAME;
     g_isOrtho = 1;
+    g_animSpeed = 1.0f;
+    g_animProgress = 0.0f;
     InvalidateRect(g_hGLWnd, NULL, FALSE);
+    InvalidateRect(g_hMainWnd, NULL, FALSE);
 }
 
 void ActionQuit() { PostQuitMessage(0); }
@@ -869,6 +953,35 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
             if (i != g_hoverBtn) g_buttons[i].hover = false;
         }
         if (g_hoverBtn != oldHover) InvalidateRect(hWnd, NULL, FALSE);
+
+        // 处理滑动条拖动
+        if (mx >= panelLeft) {
+            int relX = mx - panelLeft;
+            for (int i = 0; i < g_btnCount; i++) {
+                GButton& sb = g_buttons[i];
+                if (sb.type == BTN_SLIDER && sb.sliderDragging) {
+                    RECT r = sb.rect;
+                    int sby = r.top - g_panelScrollOffset;
+                    int bx = r.left;
+                    int bw = r.right - r.left;
+                    int trackLeft = bx + 70;
+                    int trackRight = bx + bw - 60;
+                    int trackWidth = trackRight - trackLeft;
+                    float ratio = (float)(relX - trackLeft) / (float)trackWidth;
+                    if (ratio < 0.0f) ratio = 0.0f;
+                    if (ratio > 1.0f) ratio = 1.0f;
+                    float newVal = sb.sliderMin + ratio * (sb.sliderMax - sb.sliderMin);
+                    newVal = roundf(newVal * 100.0f) / 100.0f; // 步长0.01
+                    if (sb.actionId == AID_SLIDER_SPEED) {
+                        g_animSpeed = newVal;
+                    } else if (sb.actionId == AID_SLIDER_PROGRESS) {
+                        g_animProgress = newVal;
+                    }
+                    sb.sliderValue = newVal;
+                    InvalidateRect(hWnd, NULL, FALSE);
+                }
+            }
+        }
         return 0;
     }
     case WM_LBUTTONDOWN: {
@@ -909,12 +1022,49 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
                 g_buttons[idx].pressed = true;
                 InvalidateRect(hWnd, NULL, FALSE);
                 ExecuteAction(g_buttons[idx].actionId);
+
+                // 如果点击的是滑动条，启动拖动模式
+                if (g_buttons[idx].type == BTN_SLIDER) {
+                    g_buttons[idx].sliderDragging = true;
+                    // 立即更新滑动条值到点击位置
+                    GButton& sb = g_buttons[idx];
+                    int bx = sb.rect.left;
+                    int bw = sb.rect.right - sb.rect.left;
+                    int trackLeft = bx + 70;
+                    int trackRight = bx + bw - 60;
+                    int trackWidth = trackRight - trackLeft;
+                    float ratio = (float)(relX - trackLeft) / (float)trackWidth;
+                    if (ratio < 0.0f) ratio = 0.0f;
+                    if (ratio > 1.0f) ratio = 1.0f;
+                    float newVal = sb.sliderMin + ratio * (sb.sliderMax - sb.sliderMin);
+                    newVal = roundf(newVal * 100.0f) / 100.0f;
+                    sb.sliderValue = newVal;
+                    if (sb.actionId == AID_SLIDER_SPEED)
+                        g_animSpeed = newVal;
+                    else if (sb.actionId == AID_SLIDER_PROGRESS)
+                        g_animProgress = newVal;
+                    InvalidateRect(hWnd, NULL, FALSE);
+                }
             }
         }
         return 0;
     }
     case WM_LBUTTONUP: {
         for (int i = 0; i < g_btnCount; i++) g_buttons[i].pressed = false;
+
+        // 释放滑动条拖动，如果是进度条则执行 seek
+        for (int i = 0; i < g_btnCount; i++) {
+            if (g_buttons[i].type == BTN_SLIDER && g_buttons[i].sliderDragging) {
+                g_buttons[i].sliderDragging = false;
+                if (g_buttons[i].actionId == AID_SLIDER_PROGRESS && g_modelLoaded && g_model.is_fbx) {
+                    // 拖动结束时将动画进度推送给模型并重新蒙皮
+                    g_model.anim_time = g_animProgress * g_model.anim_duration;
+                    g_model.computeSkinning();
+                    InvalidateRect(g_hGLWnd, NULL, FALSE);
+                    UpdateWindow(g_hGLWnd);
+                }
+            }
+        }
         InvalidateRect(hWnd, NULL, FALSE);
         return 0;
     }
@@ -984,8 +1134,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 lastTime = currentTime;
 
                 if (deltaTime > 0.1f) deltaTime = 0.1f; // 拦截断点挂起引发的过长跳帧
+                deltaTime *= g_animSpeed; // 应用播放速度倍率
 
                 g_model.updateAnimation(deltaTime);
+
+                // 同步更新进度滑动条值（仅在未拖动进度条时）
+                bool progressDragging = false;
+                for (int i = 0; i < g_btnCount; i++) {
+                    if (g_buttons[i].type == BTN_SLIDER && g_buttons[i].actionId == AID_SLIDER_PROGRESS && g_buttons[i].sliderDragging)
+                        progressDragging = true;
+                }
+                if (g_model.anim_duration > 0.0f && !progressDragging)
+                    g_animProgress = g_model.anim_time / g_model.anim_duration;
 
                 // 仅刷新 OpenGL 视口，绝不盲目刷 UI 面板，防止发生高频闪烁
                 InvalidateRect(g_hGLWnd, NULL, FALSE);
