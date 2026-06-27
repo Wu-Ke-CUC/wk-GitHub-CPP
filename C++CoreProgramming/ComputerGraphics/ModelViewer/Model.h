@@ -38,6 +38,8 @@ struct FBXBone {
     double inverseBindMatrix[16];    // 4x4 逆绑定矩阵 (Inverse Bind Matrix)，将顶点自模型空间变换到骨骼本地空间
     double currentTransform[16];     // 当前帧的最终皮肤变换复合矩阵 (GlobalTransform * InverseBindMatrix)
     double currentGlobalPos[3];      // 当前帧骨骼关节在世界空间中的绝对位置 (x, y, z)
+    fbxsdk::FbxAMatrix globalTransform;   // 新增：存储当前帧的骨骼全局变换矩阵
+    int influenceCount = 0;               // 新增：该骨骼影响的顶点数量
 };
 
 /**
@@ -64,6 +66,12 @@ public:
     bool loadFBX(const std::string& filename);   // 解析并载入带有骨骼动画信息的 FBX 模型文件
     void updateAnimation(float deltaTime);        // 时间驱动步进：更新骨骼姿态并重塑肌肉网格
     void computeSkinning();                       // CPU 端核心算法：线性混合蒙皮 (Linear Blend Skinning) 实时计算
+    int getSelectedBoneIndex() const { return selectedBoneIndex; }
+    void setSelectedBoneIndex(int idx) { selectedBoneIndex = idx; }
+    bool getBoneInfo(int idx, std::string& name,
+        float& posX, float& posY, float& posZ,
+        float& rotX, float& rotY, float& rotZ,
+        int& influenceCount) const;
 
     // ---- 通用动态几何数据缓存（供 OpenGL 实时绘制） ----
     std::vector<float> vertex_list;          // 目标渲染顶点流数据 (X, Y, Z 排布，动态更新)
@@ -91,6 +99,7 @@ public:
     bool is_fbx;                             // 当前是否为动画 FBX 模式
     float anim_time;                         // 动画当前播放到的时间戳（秒）
     float anim_duration;                     // 动画总时长（秒）
+	float selectedBoneIndex;                     // 当前选中骨骼的旋转角度（X 轴）
 
     std::vector<float> base_vertex_list;     // 原始静态绑定姿态（Bind Pose）下的顶点基准坐标
     std::vector<float> base_normal_list;     // 原始静态绑定姿态下的法线基准方向
@@ -99,6 +108,7 @@ public:
     std::vector<VertexBoneData> bone_weights;// 顶点对应的骨骼关联信息（与 base_vertex_list 一一对应）
     std::vector<FBXBone> bones;              // 全局骨骼层级节点树平铺列表
     std::vector<FBXMeshFace> fbx_faces;      // 记录面片网格的拓扑信息
+    
 
 private:
     // ---- FBX 底层 SDK 管理器指针 ----

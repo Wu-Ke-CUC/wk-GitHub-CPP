@@ -135,6 +135,11 @@ static int g_panelScrollOffset = 0;
 static int g_panelContentHeight = 0;
 static int g_hoverBtn = -1;
 
+static wchar_t g_boneNameLabel[64] = L"未选中骨骼";
+static wchar_t g_bonePosLabel[64] = L"位置: -- , -- , -- ";
+static wchar_t g_boneRotLabel[64] = L"旋转: -- , -- , -- ";
+static wchar_t g_boneVertLabel[64] = L"影响顶点: -- ";
+
 // 性能监控动态标签缓冲区
 static wchar_t g_fpsLabel[64] = L"实时帧率: -- FPS";
 static wchar_t g_boneCountLabel[64] = L"骨骼数量: --";
@@ -180,6 +185,8 @@ void InitPanelButtons() {
 
     AddButton(BTN_HEADER, L"► 视图模式", L"", L"", 0, y, 26);
     y += 30;
+    AddButton(BTN_INFO, g_fpsLabel, L"", L"", 0, y, 28);
+    y += 28 + 3;
     AddButton(BTN_DROPDOWN, L"检视模式", L"Space", L"", AID_VIEW_MODE, y);
     y += BTN_HEIGHT + 4;
     AddButton(BTN_TOGGLE, L" 正交 / 透视", L"V", L"", AID_TOGGLE_PROJECTION, y);
@@ -205,6 +212,20 @@ void InitPanelButtons() {
     g_buttons[g_btnCount - 1].sliderMax = 1.0f;
     g_buttons[g_btnCount - 1].sliderDragging = false;
     y += 36 + SECTION_GAP + 4;
+
+    AddButton(BTN_HEADER, L"► 骨骼信息", L"", L"", 0, y, 26);
+    y += 30;
+    AddButton(BTN_INFO, g_boneCountLabel, L"", L"", 0, y, 28);
+    y += 28 + 3;
+    AddButton(BTN_INFO, g_boneNameLabel, L"", L"", 0, y, 28);
+    y += 28 + 3;
+    AddButton(BTN_INFO, g_bonePosLabel, L"", L"", 0, y, 28);
+    y += 28 + 3;
+    AddButton(BTN_INFO, g_boneRotLabel, L"", L"", 0, y, 28);
+    y += 28 + 3;
+    AddButton(BTN_INFO, g_boneVertLabel, L"", L"", 0, y, 28);
+    y += 28 + 3;
+
     AddButton(BTN_HEADER, L"► 系统全局管理", L"", L"", 0, y, 26);
     y += 30;
     AddButton(BTN_ACTION, L"重置默认视角", L"S", L"", AID_RESET_ALL, y);
@@ -221,14 +242,75 @@ void InitPanelButtons() {
     AddButton(BTN_INFO, L"滚轮滚动   → 缩放模型", L"", L"", 0, y, 28);
     y += 28 + PANEL_PADDING;
 
-    AddButton(BTN_HEADER, L"► 性能监控", L"", L"", 0, y, 26);
-    y += 30;
-    AddButton(BTN_INFO, g_fpsLabel, L"", L"", 0, y, 28);
-    y += 28 + 3;
-    AddButton(BTN_INFO, g_boneCountLabel, L"", L"", 0, y, 28);
-    y += 28 + PANEL_PADDING;
-
     g_panelContentHeight = y;
+}
+
+void UpdateBoneInfo() {
+    int idx = g_model.getSelectedBoneIndex();
+    if (idx != -1) {
+        std::string name;
+        float px, py, pz, rx, ry, rz;
+        int inf;
+        if (g_model.getBoneInfo(idx, name, px, py, pz, rx, ry, rz, inf)) {
+            swprintf_s(g_boneNameLabel, 64, L"名称: %S", name.c_str());
+            swprintf_s(g_bonePosLabel, 64, L"位置: %.2f, %.2f, %.2f", px, py, pz);
+            swprintf_s(g_boneRotLabel, 64, L"旋转: %.1f°, %.1f°, %.1f°", fmodf(rx, 360.0f), fmodf(ry, 360.0f), fmodf(rz, 360.0f));
+            swprintf_s(g_boneVertLabel, 64, L"影响顶点: %d", inf);
+        }
+        else {
+            // 索引无效
+            wcscpy_s(g_boneNameLabel, L"无效骨骼");
+            wcscpy_s(g_bonePosLabel, L"位置: -- , -- , -- ");
+            wcscpy_s(g_boneRotLabel, L"旋转: -- , -- , -- ");
+            wcscpy_s(g_boneVertLabel, L"影响顶点: -- ");
+        }
+    }
+    else {
+        wcscpy_s(g_boneNameLabel, L"未选中骨骼");
+        wcscpy_s(g_bonePosLabel, L"位置: -- , -- , -- ");
+        wcscpy_s(g_boneRotLabel, L"旋转: -- , -- , -- ");
+        wcscpy_s(g_boneVertLabel, L"影响顶点: -- ");
+    }
+}
+
+int PickBone(int mx, int my) {
+    if (!g_modelLoaded || !g_model.is_fbx || g_model.bones.empty()) return -1;
+    HDC hdc = GetDC(g_hGLWnd);
+    wglMakeCurrent(hdc, g_hGLRC);
+
+    GLdouble proj[16], mv[16];
+    GLint viewport[4];
+    glGetDoublev(GL_PROJECTION_MATRIX, proj);
+    glGetDoublev(GL_MODELVIEW_MATRIX, mv);
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
+    float sFactor = (g_model.max_scale > 0.0001f) ? (1.5f / g_model.max_scale) : 1.0f;
+    const float threshold = 20.0f;  // 像素阈值
+    int bestIdx = -1;
+    float bestDistSq = threshold * threshold;
+
+    for (size_t i = 0; i < g_model.bones.size(); ++i) {
+        double posX = (g_model.bones[i].currentGlobalPos[0] - g_model.mean_x) * sFactor;
+        double posY = (g_model.bones[i].currentGlobalPos[1] - g_model.mean_y) * sFactor;
+        double posZ = (g_model.bones[i].currentGlobalPos[2] - g_model.mean_z) * sFactor;
+
+        double winX, winY, winZ;
+        if (gluProject(posX, posY, posZ, mv, proj, viewport, &winX, &winY, &winZ) == GL_TRUE) {
+            // gluProject 的 y 原点在左下，转换为屏幕坐标（左上原点）
+            int screenY = viewport[3] - (int)winY;
+            float dx = (float)mx - (float)winX;
+            float dy = (float)my - (float)screenY;
+            float distSq = dx * dx + dy * dy;
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq;
+                bestIdx = (int)i;
+            }
+        }
+    }
+
+    wglMakeCurrent(NULL, NULL);
+    ReleaseDC(g_hGLWnd, hdc);
+    return bestIdx;
 }
 
 // 胶囊体绘制辅助函数：在两点之间绘制带半球端盖的圆柱体
@@ -362,6 +444,8 @@ static void DrawSkeleton() {
         // 根节点用红色强调，其余用淡蓝色
         if (g_model.bones[i].parentIndex == -1)
             glColor3f(1.0f, 0.35f, 0.35f);
+        else if ((int)i == g_model.getSelectedBoneIndex())
+            glColor3f(1.0f, 1.0f, 0.2f);  // 高亮为亮黄
         else
             glColor3f(0.3f, 0.85f, 1.0f);
 
@@ -691,6 +775,8 @@ void ActionOpenModel() {
 
         if (ext == L".fbx") {
             g_modelLoaded = g_model.loadFBX(narrowPath);
+            g_model.setSelectedBoneIndex(-1);
+            UpdateBoneInfo();
         }
 
         // 强制重绘激活的双面板
@@ -870,6 +956,20 @@ LRESULT CALLBACK OpenGLWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
         if (message == WM_LBUTTONUP) g_mouseLDown = false;
         else g_mouseRDown = false;
         if (!g_mouseLDown && !g_mouseRDown) ReleaseCapture();
+        // ---- 新增：骨骼拾取逻辑（仅骨骼检视模式） ----
+        if (g_viewMode == VIEW_SKELETON && g_modelLoaded && g_model.is_fbx) {
+            int mx = LOWORD(lParam);
+            int my = HIWORD(lParam);
+            // 只有当鼠标移动距离很小（即“点击”而非“拖动”）时才触发拾取
+            int dx = mx - g_lastMouseX;
+            int dy = my - g_lastMouseY;
+            if ((dx * dx + dy * dy) < 25) {   // 约 5 像素的移动阈值
+                int picked = PickBone(mx, my);
+                g_model.setSelectedBoneIndex(picked);
+                UpdateBoneInfo();           // 刷新右侧面板文字
+                InvalidateRect(g_hGLWnd, NULL, FALSE); // 可选：重绘3D视图以显示高亮
+            }
+        }
         return 0;
     case WM_MOUSEMOVE: {
         int mx = LOWORD(lParam); int my = HIWORD(lParam);
@@ -1147,6 +1247,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 if (g_model.anim_duration > 0.0f && !progressDragging)
                     g_animProgress = g_model.anim_time / g_model.anim_duration;
 
+                if (g_model.getSelectedBoneIndex() != -1) {
+                    UpdateBoneInfo();   // 该函数会刷新右侧面板的文字
+                }
+                InvalidateRect(g_hMainWnd, NULL, FALSE);
                 // 仅刷新 OpenGL 视口，绝不盲目刷 UI 面板，防止发生高频闪烁
                 InvalidateRect(g_hGLWnd, NULL, FALSE);
                 UpdateWindow(g_hGLWnd);

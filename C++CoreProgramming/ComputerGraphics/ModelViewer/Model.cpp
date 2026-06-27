@@ -10,6 +10,7 @@ Model::Model() {
     this->anim_time = 0.0f;
     this->anim_duration = 0.0f;
     this->resetVars();
+    this->selectedBoneIndex = -1;
 }
 
 // ---- 析构函数销毁 FBX SDK 占用的底层资源 ----
@@ -126,6 +127,7 @@ bool Model::loadFBX(const std::string& filename) {
     this->bone_weights.clear();
     this->fbx_faces.clear();
     this->bones.clear();
+    this->selectedBoneIndex = -1;
 
     // 1. 初始化 FBX SDK 核心对象管理器
     if (!this->fbx_manager) {
@@ -251,6 +253,9 @@ void Model::processFBXMeshRecursive(FbxNode* node) {
                     float weight = (float)cpWeightsData[w];
                     if (cpIdx >= 0 && cpIdx < controlPointsCount) {
                         cpWeights[cpIdx].addBoneData(boneIdx, weight);
+                        if (weight > 0.0f) {
+                            this->bones[boneIdx].influenceCount++;
+                        }
                     }
                 }
             }
@@ -312,6 +317,30 @@ void Model::processFBXMeshRecursive(FbxNode* node) {
     }
 }
 
+bool Model::getBoneInfo(int idx, std::string& name,
+    float& posX, float& posY, float& posZ,
+    float& rotX, float& rotY, float& rotZ,
+    int& influenceCount) const {
+    if (idx < 0 || idx >= (int)bones.size()) return false;
+    const FBXBone& b = bones[idx];
+    name = b.name;
+
+    // 计算归一化后的位置（与绘制时一致）
+    float sFactor = (max_scale > 0.0001f) ? (1.5f / max_scale) : 1.0f;
+    posX = (float)(b.currentGlobalPos[0] - mean_x) * sFactor;
+    posY = (float)(b.currentGlobalPos[1] - mean_y) * sFactor;
+    posZ = (float)(b.currentGlobalPos[2] - mean_z) * sFactor;
+
+    // 从全局变换矩阵提取欧拉角（弧度 → 度）
+    FbxVector4 euler = b.globalTransform.GetR();
+    rotX = (float)(euler[0] * 180.0 / 3.14159265);
+    rotY = (float)(euler[1] * 180.0 / 3.14159265);
+    rotZ = (float)(euler[2] * 180.0 / 3.14159265);
+
+    influenceCount = b.influenceCount;
+    return true;
+}
+
 // ---- 时间轮询驱动步进：重塑骨骼节点矩阵状态 ----
 void Model::updateAnimation(float deltaTime) {
     if (!this->is_fbx || this->bones.empty()) return;
@@ -333,7 +362,7 @@ void Model::updateAnimation(float deltaTime) {
     for (size_t b = 0; b < this->bones.size(); b++) {
         // 求得当前时间帧关节的绝对全局动画变换矩阵
         FbxAMatrix currentGlobalTransform = evaluator->GetNodeGlobalTransform(this->bones[b].node, fbxTime);
-
+        this->bones[b].globalTransform = currentGlobalTransform;
         // 恢复获取反逆矩阵
         FbxAMatrix invBind;
         memcpy((double*)invBind, this->bones[b].inverseBindMatrix, sizeof(double) * 16);
