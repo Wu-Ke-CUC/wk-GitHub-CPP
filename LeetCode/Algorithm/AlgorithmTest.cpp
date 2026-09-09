@@ -795,22 +795,42 @@ class Solution
 		}
 		#pragma endregion
 		#pragma region 28.找出字符串中第一个匹配的下标
+		void getNext(string needle, vector<int>& next)
+		{
+			int j = 0;
+			next[0] = 0;
+			for (int i = 1; i < needle.length(); i++)
+			{
+				while (j > 0 && needle[i] != needle[j])
+				{
+					j = next[j - 1];
+				}
+				if (needle[i] == needle[j])
+				{
+					j++;
+				}
+				next[i] = j;
+			}
+		}
 		int strStr(string haystack, string needle) {
 			int length1 = haystack.length();
 			int length2 = needle.length();
-			for (int i = 0; i < length1 - length2 + 1; i++)
+			vector<int> next(length2);
+			getNext(needle, next);
+			int j = 0;
+			for (int i = 0; i < length1; i++)
 			{
-				if (haystack[i] == needle[0])
+				while (j > 0 && haystack[i] != needle[j])
 				{
-					bool isMatch = true;
-					for (int j = 0; j < length2; j++)
-					{
-						if (haystack[i + j] != needle[j])
-						{
-							isMatch = false;
-						}
-					}
-					if (isMatch)return i;
+					j = next[j - 1];
+				}
+				if (haystack[i] == needle[j])
+				{
+					j++;
+				}
+				if (j == length2)
+				{
+					return i - length2 + 1;
 				}
 			}
 			return -1;
