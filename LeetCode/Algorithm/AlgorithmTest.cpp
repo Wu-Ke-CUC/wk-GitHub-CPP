@@ -2826,6 +2826,31 @@ class Solution
 			return myBuildTree3(nums, 0, n - 1);
 		}
 		#pragma endregion
+		#pragma region 128.最长连续数列
+		int longestConsecutive(vector<int>& nums) {
+			unordered_set<int> numSet;
+			for (int num : nums)
+			{
+				numSet.insert(num);
+			}
+			int longestStreak = 0;
+			for (const int& num : numSet)
+			{
+				if (!numSet.count(num - 1))
+				{
+					int currentNum = num;
+					int currentStreak = 1;
+					while (numSet.count(currentNum + 1)) 
+					{
+						currentNum++;
+						currentStreak++;
+					}
+					longestStreak = max(longestStreak, currentStreak);
+				}
+			}
+			return longestStreak;
+		}
+		#pragma endregion
 
 };
 int main()
