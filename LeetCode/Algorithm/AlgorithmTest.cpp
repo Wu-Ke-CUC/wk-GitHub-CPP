@@ -2871,6 +2871,89 @@ class Solution
 			return longestStreak;
 		}
 		#pragma endregion
+		#pragma region 169.多数数组
+		int majorityElement(vector<int>& nums) {
+			unordered_map<int, int> numMap;
+			for (int i = 0; i < nums.size(); i++)
+			{
+				numMap[nums[i]]++;
+				if (numMap[nums[i]] > nums.size() / 2)
+				{
+					return nums[i];
+				}
+			}
+		}
+		#pragma endregion
+		#pragma region 438.找到字符串中所有字母异位词
+		vector<int> findAnagrams(string s, string p) {
+			//vector<int> ret;
+			//if (s.size() < p.size())return ret;
+			//unordered_map<char, int> pMap;
+			//for (int i = 0; i < p.size(); i++)
+			//{
+			//	pMap[p[i]]++;
+			//}
+			//for (int i = 0; i < s.size() - p.size() + 1; i++)
+			//{
+			//	unordered_map<char, int> tMap = pMap;
+			//	for (int j = 0; j < p.size(); j++)
+			//	{
+			//		if (tMap.count(s[i + j]))
+			//		{
+			//			tMap[s[i + j]]--;
+			//			if (tMap[s[i + j]] == 0)
+			//			{
+			//				tMap.erase(s[i + j]);
+			//			}
+			//		}
+			//		else
+			//		{
+			//			if (tMap.find(s[i + j]) == tMap.end())
+			//			{
+			//				i += j;
+			//			}
+			//			break;
+			//		}
+			//	}
+			//	if (tMap.empty())
+			//	{
+			//		ret.push_back(i);
+			//		if (s[i + p.size()] == s[i])
+			//		{
+			//			while (s[i + p.size()] == s[i])
+			//			{
+			//				i++;
+			//				ret.push_back(i);
+			//			}
+			//		}
+			//	}
+			//}
+			//return ret;
+			 
+			//滑动窗口
+			vector<int> ret;
+			vector<int> sMap(26, 0), pMap(26, 0);
+			for (int i = 0; i < p.size(); i++)
+			{
+				sMap[s[i] - 'a']++;
+				pMap[p[i] - 'a']++;
+			}
+			if (sMap == pMap)
+			{
+				ret.push_back(0);
+			}
+			for (int i = 0; i < s.size() - p.size(); i++)
+			{
+				sMap[s[i] - 'a']--;
+				sMap[s[i + p.size()] - 'a']--;
+				if (sMap == pMap)
+				{
+					ret.push_back(i + 1);
+				}
+			}
+			return ret;
+		}
+		#pragma endregion
 
 };
 int main()
